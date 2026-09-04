@@ -1,0 +1,598 @@
+<!doctype html>
+<!-- slopcheck-ignore-file: this page catalogs slop patterns as its subject matter -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anti-Slop Field Guide</title>
+<meta name="description" content="A guardrail against generic AI output: two layers, 66 detection signatures and 52 prevention rules, browsable in full.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap">
+<style>
+  /* ANTI-SLOP FIELD GUIDE
+     Type mapping is meaningful: JetBrains Mono quarantines the machine's own
+     slop (patterns, IDs, code); Newsreader carries human guidance; Archivo
+     frames structure. Color is semantic: the Swiss red appears only as the
+     high-severity signal, so hue encodes exactly what the tool measures. */
+
+  *,*::before,*::after{ box-sizing:border-box; }
+
+  :root{
+    --paper:#FBFAF7;   --panel:#F1EEE6;   --panel-2:#EAE6DB;
+    --ink:#191712;     --ink-soft:#5C574B; --ink-faint:#8A8475;
+    --hair:#D9D4C7;    --hair-strong:#C4BEAE;
+    --flag:#C8102E;    --flag-ink:#8E0B22; --flag-soft:#F5DCDF;
+    --warn:#8F5300;    --warn-soft:#F0E1C4;
+    --calm:#455663;    --calm-soft:#DDE2E1;
+    --focus:#191712;
+
+    --sans:'Archivo', system-ui, -apple-system, sans-serif;
+    --serif:'Newsreader', Georgia, 'Times New Roman', serif;
+    --mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#131209;  --panel:#1C1A12;  --panel-2:#232016;
+      --ink:#EDE8DA;    --ink-soft:#A49D8A; --ink-faint:#736D5E;
+      --hair:#322E24;   --hair-strong:#443F31;
+      --flag:#F1566A;   --flag-ink:#F1566A; --flag-soft:#38191E;
+      --warn:#E3A64E;   --warn-soft:#332812;
+      --calm:#9FB1BE;   --calm-soft:#1F2529;
+      --focus:#EDE8DA;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#131209;  --panel:#1C1A12;  --panel-2:#232016;
+    --ink:#EDE8DA;    --ink-soft:#A49D8A; --ink-faint:#736D5E;
+    --hair:#322E24;   --hair-strong:#443F31;
+    --flag:#F1566A;   --flag-ink:#F1566A; --flag-soft:#38191E;
+    --warn:#E3A64E;   --warn-soft:#332812;
+    --calm:#9FB1BE;   --calm-soft:#1F2529;
+    --focus:#EDE8DA;
+  }
+
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--serif); font-size:18px; line-height:1.62;
+    font-synthesis:none; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  ::selection{ background:var(--flag); color:#fff; }
+  a{ color:inherit; text-underline-offset:3px; text-decoration-thickness:1px; }
+
+  .wrap{ max-width:1200px; margin:0 auto; padding:0 clamp(20px,5vw,68px); }
+
+  .eyebrow{ font-family:var(--mono); font-size:12px; font-weight:500;
+    letter-spacing:.19em; text-transform:uppercase; color:var(--ink-soft); }
+  .mono{ font-family:var(--mono); }
+  .flag{ color:var(--flag-ink); }
+
+  .skip{ position:absolute; left:-999px; top:0; background:var(--ink); color:var(--paper);
+    font-family:var(--mono); font-size:13px; padding:10px 14px; z-index:20; }
+  .skip:focus{ left:12px; top:12px; }
+
+  /* ---------- masthead ---------- */
+  .mast{ padding:clamp(28px,5vw,52px) 0 clamp(40px,6vw,68px); }
+  .mast-top{ display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; }
+  .mast-tools{ display:flex; align-items:center; gap:14px; }
+  .tag{ font-family:var(--mono); font-size:12.5px; letter-spacing:.02em; color:var(--ink);
+    border:1px solid var(--hair-strong); padding:6px 10px; }
+  .theme{ display:inline-grid; place-items:center; width:38px; height:38px;
+    background:transparent; border:1px solid var(--hair-strong); color:var(--ink); cursor:pointer; padding:0; }
+  .theme:hover{ background:var(--panel); }
+  .theme svg{ width:17px; height:17px; display:block; }
+  .ic-sun{ display:none; } .ic-moon{ display:block; }
+  :root[data-theme="dark"] .ic-sun{ display:block; } :root[data-theme="dark"] .ic-moon{ display:none; }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .ic-sun{ display:block; }
+    :root:not([data-theme="light"]) .ic-moon{ display:none; }
+  }
+
+  .wordmark{ font-family:var(--sans); font-weight:900; letter-spacing:-.035em; line-height:.9;
+    font-size:clamp(64px,16vw,196px); margin:clamp(22px,4vw,40px) 0 0; text-wrap:balance; }
+  .wordmark .wm-slash{ color:var(--flag); }
+  .thesis{ font-size:clamp(20px,2.6vw,30px); line-height:1.4; max-width:24ch; margin:clamp(20px,3vw,30px) 0 0;
+    font-weight:400; }
+  .thesis b{ font-weight:600; }
+  .thesis .lede-em{ font-style:italic; }
+
+  .rail{ display:flex; flex-wrap:wrap; gap:0; margin:clamp(34px,5vw,52px) 0 0;
+    border-top:1px solid var(--hair); border-left:1px solid var(--hair); }
+  .stat{ flex:1 1 140px; border-right:1px solid var(--hair); border-bottom:1px solid var(--hair);
+    padding:16px 18px; }
+  .stat .n{ font-family:var(--sans); font-weight:800; font-size:34px; letter-spacing:-.02em;
+    line-height:1; font-variant-numeric:tabular-nums; }
+  .stat .k{ font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-soft); margin-top:8px; }
+
+  /* ---------- sections ---------- */
+  .section{ border-top:1px solid var(--hair); padding:clamp(52px,7vw,104px) 0; }
+  .sec-head{ display:grid; grid-template-columns:1fr; gap:16px; max-width:74ch; }
+  .sec-index{ font-family:var(--mono); font-size:12px; letter-spacing:.16em; color:var(--flag-ink); text-transform:uppercase; }
+  .sec-title{ font-family:var(--sans); font-weight:800; letter-spacing:-.022em; line-height:1.02;
+    font-size:clamp(30px,4.4vw,52px); margin:0; text-wrap:balance; }
+  .standfirst{ font-size:clamp(18px,2vw,21px); color:var(--ink-soft); margin:4px 0 0; max-width:60ch; }
+  .prose{ max-width:62ch; }
+  .prose p{ margin:0 0 1.05em; }
+  .prose p:last-child{ margin-bottom:0; }
+
+  /* ---------- two layers ---------- */
+  .layers{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--hair);
+    border:1px solid var(--hair); margin-top:clamp(32px,4vw,48px); }
+  .layer{ background:var(--paper); padding:clamp(26px,3vw,40px); }
+  .layer-tag{ display:flex; align-items:baseline; gap:12px; }
+  .layer-tag .lt-n{ font-family:var(--sans); font-weight:900; font-size:22px; color:var(--flag); letter-spacing:-.02em; }
+  .layer-tag .lt-k{ font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+  .layer h3{ font-family:var(--sans); font-weight:800; font-size:clamp(23px,2.5vw,30px);
+    letter-spacing:-.02em; margin:14px 0 12px; line-height:1.06; }
+  .layer p{ margin:0 0 1em; color:var(--ink); font-size:16.5px; }
+  .layer p:last-child{ margin-bottom:0; }
+  .callout{ border:1px solid var(--hair-strong); background:var(--panel); padding:16px 18px; margin:6px 0 16px; }
+  .callout .co-k{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--flag-ink); display:block; margin-bottom:7px; }
+  .callout .co-v{ font-size:16.5px; line-height:1.45; }
+  .dims{ display:flex; flex-wrap:wrap; gap:7px; margin-top:4px; }
+  .dim-pill{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    border:1px solid var(--hair-strong); padding:5px 9px; color:var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  .code{ font-family:var(--mono); font-size:13.5px; line-height:1.65; background:var(--panel);
+    border:1px solid var(--hair); padding:16px 18px; overflow-x:auto; white-space:pre; color:var(--ink);
+    margin:0; }
+  .code .cm{ color:var(--ink-faint); }
+  .code .fl{ color:var(--flag-ink); }
+  .code-row{ display:grid; grid-template-columns:1fr; gap:16px; margin-top:22px; }
+  .exit{ display:flex; flex-wrap:wrap; gap:0; border-top:1px solid var(--hair); border-left:1px solid var(--hair); margin-top:22px; }
+  .exit .e{ flex:1 1 200px; border-right:1px solid var(--hair); border-bottom:1px solid var(--hair); padding:14px 16px; }
+  .exit .e .ec{ font-family:var(--sans); font-weight:800; font-size:20px; }
+  .exit .e .et{ font-family:var(--mono); font-size:12.5px; color:var(--ink-soft); margin-top:6px; line-height:1.4; }
+
+  /* ---------- reference / catalog ---------- */
+  .cat-lead{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; }
+  .controls{ margin-top:clamp(26px,3vw,36px); display:flex; flex-direction:column; gap:18px; }
+  .seg{ display:inline-flex; border:1px solid var(--ink); align-self:flex-start; max-width:100%; }
+  .seg button{ appearance:none; border:0; background:transparent; color:var(--ink); cursor:pointer;
+    font-family:var(--mono); font-size:13px; letter-spacing:.04em; padding:11px 18px; line-height:1.2;
+    border-right:1px solid var(--ink); }
+  .seg button:last-child{ border-right:0; }
+  .seg button[aria-pressed="true"]{ background:var(--ink); color:var(--paper); }
+  .seg button b{ font-weight:700; }
+
+  .filter-row{ display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; }
+  .fgroup{ display:flex; flex-direction:column; gap:8px; }
+  .fgroup .flabel{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{ appearance:none; font-family:var(--mono); font-size:12px; letter-spacing:.05em; text-transform:uppercase;
+    padding:7px 11px; border:1px solid var(--hair-strong); background:transparent; color:var(--ink-soft); cursor:pointer; }
+  .chip:hover{ color:var(--ink); border-color:var(--ink); }
+  .chip[aria-pressed="true"]{ border-color:var(--ink); color:var(--ink); background:var(--panel); }
+  .chip .cn{ color:var(--ink-faint); }
+  .chip[aria-pressed="true"] .cn{ color:var(--ink-soft); }
+  .search{ font-family:var(--mono); font-size:14px; padding:9px 12px; border:1px solid var(--hair-strong);
+    background:var(--paper); color:var(--ink); min-width:min(280px,100%); }
+  .search::placeholder{ color:var(--ink-faint); }
+
+  button:focus-visible, .search:focus-visible, a:focus-visible, .chip:focus-visible{
+    outline:2px solid var(--focus); outline-offset:2px; }
+  .search:focus-visible{ outline-offset:1px; border-color:var(--focus); }
+
+  .count{ font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; color:var(--ink-soft);
+    margin:22px 0 14px; text-transform:uppercase; }
+  .count b{ color:var(--ink); font-weight:700; }
+
+  .cat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(345px,1fr));
+    gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  @media (max-width:560px){ .cat-grid{ grid-template-columns:1fr; } }
+  .card{ background:var(--paper); padding:22px 22px 24px; display:flex; flex-direction:column; gap:12px; }
+  .card:hover{ background:var(--panel); }
+  .card-top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .sev{ display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11px;
+    letter-spacing:.11em; text-transform:uppercase; color:var(--ink); white-space:nowrap; }
+  .sq{ width:10px; height:10px; flex:none; background:var(--calm); }
+  .sev--high .sq{ background:var(--flag); } .sev--medium .sq{ background:var(--warn); } .sev--low .sq{ background:var(--calm); }
+  .sev--high{ color:var(--flag-ink); }
+  .dimtag{ font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); }
+  .cid{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); text-align:right; word-break:break-word; }
+  .cdesc{ font-size:16px; line-height:1.5; margin:0; }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field .fk{ font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+  .field .fk.k-slop{ color:var(--flag-ink); }
+  .field .fv{ font-size:15px; line-height:1.5; }
+  .field .fv.mono{ font-family:var(--mono); font-size:12.5px; line-height:1.55; background:var(--panel-2);
+    border:1px solid var(--hair); padding:9px 11px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; }
+  .card:hover .field .fv.mono{ background:var(--paper); }
+  .note{ font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; color:var(--ink-faint);
+    border-top:1px solid var(--hair); padding-top:10px; margin-top:2px; }
+  .empty{ padding:40px 4px; font-family:var(--mono); font-size:13px; color:var(--ink-soft); }
+
+  /* ---------- provenance ---------- */
+  .pull{ font-family:var(--serif); font-style:italic; font-weight:500; font-size:clamp(22px,3vw,32px);
+    line-height:1.32; letter-spacing:-.01em; max-width:22ch; margin:0 0 clamp(26px,4vw,40px); text-wrap:balance; }
+  .legend{ display:flex; flex-wrap:wrap; gap:0; border-top:1px solid var(--hair); border-left:1px solid var(--hair); margin-top:20px; }
+  .legend .lg{ flex:1 1 150px; border-right:1px solid var(--hair); border-bottom:1px solid var(--hair); padding:14px 16px; }
+  .legend .lg .lgt{ display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:11px;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--ink); }
+  .legend .lg .lgd{ font-size:14.5px; color:var(--ink-soft); margin-top:8px; line-height:1.45; }
+
+  footer{ border-top:1px solid var(--ink); padding:34px 0 60px; }
+  .foot{ display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:12px; letter-spacing:.04em; color:var(--ink-soft); }
+  .foot code{ color:var(--ink); }
+
+  @media (max-width:720px){ .layers{ grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion:no-preference){
+    .card{ transition:background-color .15s ease; }
+    .chip,.theme,.seg button{ transition:background-color .15s ease, color .15s ease, border-color .15s ease; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#reference">Skip to the reference</a>
+
+<header class="mast wrap">
+  <div class="mast-top">
+    <span class="eyebrow">design-antislop &middot; cross-cutting guardrail</span>
+    <div class="mast-tools">
+      <code class="tag">/design-antislop</code>
+      <button class="theme" id="themeBtn" type="button" aria-label="Switch color theme" title="Switch color theme">
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke-linejoin="round"/></svg>
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <h1 class="wordmark">Anti<span class="wm-slash">-</span>Slop<br>Field Guide</h1>
+
+  <p class="thesis">Every model trained on the same corpus, so every model drifts to the same house style. The result is generic rather than ugly, and generic reads as <b>machine-made</b>. This is the layer that keeps our work <span class="lede-em">off that baseline</span>.</p>
+
+  <dl class="rail">
+    <div class="stat"><div class="n">66</div><div class="k">Detection signatures</div></div>
+    <div class="stat"><div class="n">52</div><div class="k">Prevention rules</div></div>
+    <div class="stat"><div class="n">4</div><div class="k">Dimensions</div></div>
+    <div class="stat"><div class="n">2</div><div class="k">Layers</div></div>
+    <div class="stat"><div class="n">v1</div><div class="k">Built 2026-08-18</div></div>
+  </dl>
+</header>
+
+<main>
+<!-- 01 -->
+<section class="section wrap">
+  <div class="sec-head">
+    <span class="sec-index">01 / What slop is</span>
+    <h2 class="sec-title">A shared house style nobody chose</h2>
+    <p class="standfirst">Slop is the statistical mean of a billion training examples: the shadcn palette, the ChatGPT register, the centered hero with three feature cards. Escaping it costs a deliberate decision. The default is sameness.</p>
+  </div>
+  <div class="prose" style="margin-top:clamp(26px,3vw,38px)">
+    <p>You can spot it in four places at once. In <b>visual design</b>, a purple-to-pink gradient over Inter, a colored strip down the left edge of every card. In <b>UX</b>, a happy path with no empty state, an icon button with no label. In <b>copy</b>, "in today's fast-paced world," a hedge stacked on a hedge. In <b>code</b>, an empty catch block, a comment that just restates the next line.</p>
+    <p>None of it is broken. That's the trap. It passes review, it renders, it ships, and it looks like everything else. This guide is the style-agnostic layer that sits on top of whichever design style a build uses: the per-style checklists judge fidelity to their style, and this one catches the generic-AI baseline no matter which style you picked.</p>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="section wrap">
+  <div class="sec-head">
+    <span class="sec-index">02 / How it works</span>
+    <h2 class="sec-title">Two layers: steer the build, then scan it</h2>
+    <p class="standfirst">One layer works while you generate. The other checks what came out. Neither replaces judgment; both make the generic default expensive to ship by accident.</p>
+  </div>
+  <div class="layers">
+    <div class="layer">
+      <div class="layer-tag"><span class="lt-n">01</span><span class="lt-k">Prevention &middot; while building</span></div>
+      <h3>A playbook that steers the work</h3>
+      <div class="callout">
+        <span class="co-k">The one rule above all</span>
+        <span class="co-v">Write a short <b>DESIGN.md</b> first: a project-specific palette, a distinctive type pairing, a voice. Generate against that file, not against muscle memory. Negative constraints beat positive adjectives.</span>
+      </div>
+      <p>52 ranked rules follow, phrased as "the slop / do instead / why," so a fix is a decision you can act on, not a vibe. Every rule is browsable below.</p>
+      <div class="dims" aria-hidden="true">
+        <span class="dim-pill">Visual 11</span><span class="dim-pill">UX 8</span><span class="dim-pill">Copy 12</span><span class="dim-pill">Code 13</span>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-tag"><span class="lt-n">02</span><span class="lt-k">Detection &middot; before shipping</span></div>
+      <h3>A linter that scans the output</h3>
+      <p><code class="mono" style="font-size:13px">slopcheck</code> is a zero-dependency Python 3 CLI. It reads a signature ruleset and scans built files for 66 machine-detectable tells, then reports where to look. A match is a prompt, not a verdict.</p>
+      <p>It defaults to medium-and-up severity and hides the high-false-positive rules, so the signal stays high on real work. Run it by hand, wire it into CI, or attach the optional per-project hook.</p>
+      <div class="dims" aria-hidden="true">
+        <span class="dim-pill">Visual 12</span><span class="dim-pill">UX 5</span><span class="dim-pill">Copy 18</span><span class="dim-pill">Code 11</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="section wrap">
+  <div class="sec-head">
+    <span class="sec-index">03 / Running the detector</span>
+    <h2 class="sec-title">Advisory by default, a gate when you want one</h2>
+    <p class="standfirst">The same tool serves three depths: a quick local scan, a strict pre-ship sweep, and a CI gate that fails the build on a high-severity tell.</p>
+  </div>
+  <div class="code-row">
+    <pre class="code"><span class="cm"># scan the current tree: medium+ severity, low-noise defaults</span>
+skills/design-antislop/slopcheck src/
+
+<span class="cm"># the full sweep for a hero or primary flow: adds high-false-positive rules</span>
+skills/design-antislop/slopcheck --strict index.html
+
+<span class="cm"># narrow the lens</span>
+skills/design-antislop/slopcheck --dimension copy --min-severity high
+
+<span class="cm"># machine output for CI, and inspect the active ruleset</span>
+skills/design-antislop/slopcheck --json
+skills/design-antislop/slopcheck --list</pre>
+  </div>
+  <div class="exit">
+    <div class="e"><div class="ec flag">exit 2</div><div class="et">At least one high-severity tell. Usable as a hard CI gate.</div></div>
+    <div class="e"><div class="ec">exit 1</div><div class="et">Medium or low findings only. Worth a look, not a block.</div></div>
+    <div class="e"><div class="ec">exit 0</div><div class="et">Clean at the chosen severity. Ship it.</div></div>
+    <div class="e"><div class="ec">hook</div><div class="et">Opt-in per project: surfaces high tells on each edit, never blocks. Off globally on purpose, since empty-catch fires on normal backend work.</div></div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="section wrap" id="reference">
+  <div class="cat-lead">
+    <div class="sec-head">
+      <span class="sec-index">04 / The reference</span>
+      <h2 class="sec-title">Every signature and rule, in full</h2>
+      <p class="standfirst">Nothing summarized away. Switch between the detector's signatures and the playbook's rules, then filter by dimension, severity, or text.</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Choose dataset">
+      <button type="button" id="mode-sig" data-mode="sig" aria-pressed="true">Detect &middot; <b>66 signatures</b></button>
+      <button type="button" id="mode-rule" data-mode="rule" aria-pressed="false">Prevent &middot; <b>52 rules</b></button>
+    </div>
+    <div class="filter-row">
+      <div class="fgroup">
+        <span class="flabel">Dimension</span>
+        <div class="chips" id="dimChips" role="group" aria-label="Filter by dimension"></div>
+      </div>
+      <div class="fgroup">
+        <span class="flabel" id="sevLabel">Severity</span>
+        <div class="chips" id="sevChips" role="group" aria-label="Filter by severity"></div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel" for="q">Search</label>
+        <input class="search" id="q" type="search" placeholder="pattern, phrase, fix..." autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+  <p class="count" id="count" aria-live="polite"></p>
+  <div class="cat-grid" id="grid"></div>
+</section>
+
+<!-- 05 -->
+<section class="section wrap">
+  <div class="sec-head">
+    <span class="sec-index">05 / Provenance &amp; honesty</span>
+    <h2 class="sec-title">Heuristics, not laws</h2>
+  </div>
+  <div style="margin-top:clamp(30px,4vw,44px)">
+    <p class="pull">"The canonical tell flipped from signature to liability in about a year."</p>
+    <div class="prose">
+      <p>The ruleset was distilled on 2026-08-18 by the <span class="mono" style="font-size:15px">anti-slop-research</span> fleet: twelve finders across GitHub, Reddit, and design writing, hundreds of findings pressed down to 66 signatures and 52 rules. The raw material is kept, so the list is meant to be re-run, not frozen.</p>
+      <p>It has to be. Anthropic's own frontend guidance now <b>excludes</b> the purple-on-white gradient it once reached for by default. Slop tells rot: what marks a machine this year can be a deliberate choice the next. So treat every match as "look here," never "this is wrong." The linter is advisory. Human judgment ships the work, and no invented statistic about slop belongs in it.</p>
+    </div>
+    <div class="legend" id="legend" aria-label="Severity meaning"></div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <div class="foot">
+    <span>Source: <code>github.com/cschuman/design-antislop</code></span>
+    <span>Refresh: re-run <code>anti-slop-research</code>, drop new signatures, regenerate.</span>
+  </div>
+</footer>
+
+<script id="sig-data" type="application/json">[{"id":"copy-ai-vocab-cluster","dimension":"copy","description":"Two or more tier-1 AI-overused abstract terms (delve, tapestry, leverage, seamless, pivotal, intricate, testament, vibrant, crucial, myriad, plethora, cornerstone, synergy...) within ~300 characters of each other. A single term is ordinary English; the cluster is the tell.","match":"\\b(delves?|delving|tapestry|leverage[sd]?|leveraging|seamless(ly)?|pivotal|intricate(ly)?|garner(ed|s)?|underscores?|testament|resonate[sd]?|meticulous(ly)?|vibrant|nestled|groundbreaking|paradigm shift|holistic|disruptive|unprecedented|game.changer|bolster(s|ed|ing)?|enduring|interplay|crucial|exemplify|renowned|boasts?|myriad|plethora|cornerstone|synergy)\\b[\\s\\S]{0,300}?\\b(delves?|delving|tapestry|leverage[sd]?|leveraging|seamless(ly)?|pivotal|intricate(ly)?|garner(ed|s)?|underscores?|testament|resonate[sd]?|meticulous(ly)?|vibrant|nestled|groundbreaking|paradigm shift|holistic|disruptive|unprecedented|game.changer|bolster(s|ed|ing)?|enduring|interplay|crucial|exemplify|renowned|boasts?|myriad|plethora|cornerstone|synergy)\\b","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Replace each with a concrete, plain-English word or cut the sentence; one of these words alone is fine, two in the same passage reads as generated.","example":"AI: 'Delving into the robust tapestry of this intricate, vibrant landscape\u2014a testament to a crucial paradigm shift.' Better: 'Here are three patterns from our analysis.'"},{"id":"copy-hedging-preamble","dimension":"copy","description":"Cautious epistemic preamble/disclaimer phrases inserted before a claim to soften it, including LLM-specific artifacts like a stated knowledge cutoff.","match":"\\bit('s| is) (important|worth) (to note|noting|mentioning) that\\b|it could be argued that|as of my knowledge cutoff|needless to say","match_type":"regex","severity":"high","false_positive_risk":"low","fix":"Delete the preamble and state the claim directly; if a knowledge-cutoff disclaimer appears at all, remove it entirely.","example":"AI: 'It is important to note that, as of my knowledge cutoff, the data suggests trends are moving upward.' Better: 'The data shows upward trends.'"},{"id":"copy-hedging-stack","dimension":"copy","description":"Two or more stacked uncertainty qualifiers in one clause ('could potentially possibly', 'might arguably', 'may often typically help').","match":"\\b(could|might|may)\\s+(potentially|possibly|arguably|seemingly)\\s+\\w+\\s+(potentially|possibly|arguably|seem)\\b|\\b(may|might|could|can) (often |sometimes |typically |generally |potentially )+(be |help |suggest|indicate)\\b","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Keep at most one hedge word, or commit to the claim.","example":"AI: 'This could potentially argue that it may represent a shift. It may often typically help.' Better: 'This suggests a shift.'"},{"id":"copy-binary-contrast","dimension":"copy","description":"'Not just X, but Y' / 'It's not X, it's Y' rhetorical contrast pivot, including the two-sentence negation-then-correction variant ('X isn't Y. It's Z.'), used to manufacture drama out of a plain statement.","match":"\\b(not (just|only)\\b[^.,;]{1,60}\\bbut\\b|it'?s not\\b[^.,;]{1,60}\\bit'?s\\b)\\b|\\b(isn'?t|is not) (just |only |merely )?[a-z][\\w '-]{3,40}[.;] ?(it'?s|it is|they'?re|they are|we'?re|we are)\\b","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"State the single point directly without the contrast frame.","example":"AI: 'This isn't just a tool. It's a paradigm.' Better: 'A tool for cleaning AI writing.'"},{"id":"copy-throat-clearing-openers","dimension":"copy","description":"Filler preamble sentence-openers, including SEO/travel-blog and generic filler phrasing, that add no information before the actual claim.","match":"^(Here'?s the thing:|At its core,|It'?s worth noting:|In essence,|Ultimately,|In the heart of|Let'?s dive in|Without further ado)","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Delete the opener; start with the actual point.","example":"AI: 'Let's dive in: In the heart of the city lies a platform that streamlines workflows.' Better: 'The platform streamlines workflows.'"},{"id":"copy-false-agency","dimension":"copy","description":"Inanimate nouns given human-verb agency to imply evidence without naming a source.","match":"\\bthe (data|research|evidence|analysis) (reveals|shows|underscores|demonstrates)\\b","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Attribute the claim to a named source or state it as your own assertion.","example":"AI: 'The evidence underscores the importance of security.' Better: 'Security matters because a breach cost us $2M in 2025.'"},{"id":"copy-copula-avoidance","dimension":"copy","description":"Verbose is-replacement verbs ('serves as', 'acts as', 'functions as', 'stands as') used instead of simple 'is/are'.","match":"\\b(serves? as|acts? as|functions? as|stands? as) an?\\b","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Replace with 'is'/'are' for directness.","example":"AI: 'This serves as a reminder that the platform represents innovation.' Better: 'This is a reminder: the platform is innovative.'"},{"id":"copy-stock-transitions","dimension":"copy","description":"Formal academic connector words (Furthermore, Moreover, Additionally, In addition, Consequently, Notably, Importantly) opening a sentence, chained across a paragraph.","match":"^(Furthermore|Moreover|Additionally|In addition|Consequently|Notably|Importantly),","match_type":"regex","severity":"medium","false_positive_risk":"low","fix":"Delete the connector or replace with plain flow; vary transitions.","example":"AI: 'Furthermore, it is secure. Moreover, it scales.' Better: 'It's secure and it scales.'"},{"id":"copy-promotional-verbs","dimension":"copy","description":"Vague oversell verbs common in AI-generated marketing copy (unlock [your potential / the full power of], elevate, empower, streamline, harness the power of, supercharge, revolutionize), used without a supporting number or specific claim.","match":"\\b(unlock(?:ing|s)? (?:(?:the|your|its|their|our|new|full|true|hidden|endless|limitless|real) ){0,2}(?:potential|power|value|growth|insights?|possibilit\\w+|opportunit\\w+|creativity|productivity|efficiency|success)|elevate|empower|streamline|harness the power of|supercharge|revolutioniz\\w+)\\b","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Replace with a concrete outcome and number.","example":"AI: 'We leverage synergy to transform your workflow and unlock customer potential.' Better: 'Reduced customer churn by 15% through personalized onboarding.'"},{"id":"copy-vague-attribution","dimension":"copy","description":"Hedged claims attributed to an unnamed, unlinked source ('experts argue/believe', 'studies show', 'industry reports suggest', 'it's widely known', 'many argue').","match":"\\b(experts (argue|say|agree|believe)|studies show|industry reports suggest|research suggests|it'?s widely known|many argue)\\b","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Name the source, date, and link, or cut the claim.","example":"AI: 'Experts suggest AI will transform everything.' Better: 'McKinsey's 2024 AI report predicts 15-40% cost reduction.'"},{"id":"copy-fast-paced-world","dimension":"copy","description":"Extremely generic temporal-framing cliche opener.","match":"in today'?s fast.paced world","match_type":"regex","severity":"high","false_positive_risk":"low","fix":"Delete and open with the actual problem or insight.","example":"AI: 'In today's fast-paced world, staying competitive means...' Better: 'Last quarter, our slowest customer shipped 3 features in one week.'"},{"id":"copy-harness-the-power","dimension":"copy","description":"Cliche phrase almost never used unprompted by human writers.","match":"harness the power of","match_type":"substring","severity":"high","false_positive_risk":"low","fix":"State what the tool actually does with a number.","example":"AI: 'Harness the power of automation.' Better: 'Automate your invoices in 30 seconds.'"},{"id":"copy-in-conclusion-crutch","dimension":"copy","description":"'In conclusion'/'In summary' used as a structural crutch to end a section.","match":"^(In conclusion|In summary|To summarize|To conclude),","match_type":"regex","severity":"low","false_positive_risk":"low","fix":"End on the point itself, or use a natural closer ('So:').","example":"AI: 'In conclusion, the three points above demonstrate the value.' Better: 'These three facts matter because they shift the cost calculus.'"},{"id":"copy-listicle-title","dimension":"copy","description":"Forced numeric listicle title pattern (3/5/7/10 reasons/tips/ways).","match":"^\\s*\\d+\\s+(reasons?|ways?|tips?|things?|secrets?|steps?)\\s+(why|to|for)\\b","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Use narrative structure, or let the list length be whatever it actually is.","example":"AI: '7 Reasons Why Email Marketing Is Essential.' Better: narrative with embedded insight."},{"id":"copy-marketing-cliche-phrases","dimension":"copy","description":"Stock SaaS marketing phrases repeated across thousands of AI-generated landing pages, including unsourced social-proof claims ('trusted by X companies') and generic positioning ('built for developers').","match":"\\b(unlock (your )?productivity|next.generation platform|boost your workflow|empower your (team|workflow)|seamless integration|elevate your (business|productivity)|trusted by \\d+[k+]?\\s*(developers|companies|teams)|built for developers)\\b","match_type":"regex","severity":"medium","false_positive_risk":"low","fix":"Replace with a specific product claim and metric.","example":"Hero: 'Trusted by 10k+ developers. Elevate Your Productivity With Our AI-Powered Solution.' Better: 'Cut code review time from 2 hours to 15 minutes; used at Stripe and Figma.'"},{"id":"copy-meta-commentary","dimension":"copy","description":"Disclaimer phrases that announce structure instead of embedding it naturally.","match":"\\b(as mentioned above|as (we|previously) discussed|as noted (above|earlier))\\b","match_type":"regex","severity":"low","false_positive_risk":"low","fix":"Cut the phrase; let context carry the reference.","example":"AI: 'As mentioned above, customer satisfaction matters.' Better: state the point once, don't re-announce it."},{"id":"copy-em-dash-density","dimension":"copy","description":"More than 2 em dashes within a single paragraph/section, a strong statistical AI-authorship signal.","match":"(\u2014.*){3,}","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Convert most em-dash asides into separate sentences or commas.","example":"AI: 'The system\u2014built on modern architecture\u2014provides\u2014seamlessly\u2014integration.' Better: split into short sentences."},{"id":"copy-hollow-tricolon","dimension":"copy","description":"Rule-of-three adjective/noun triads used as filler (X, Y, and Z) especially when repeated across adjacent sentences.","match":"\\b\\w+,\\s*\\w+,\\s*(and|&)\\s*\\w+\\.(\\s*\\w+,\\s*\\w+,\\s*(and|&)\\s*\\w+\\.)","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Vary list length (2, 4, 5 items) instead of defaulting to three.","example":"AI: 'Scalable, secure, and simple. Fast, reliable, and easy to use.' Better: vary structure and length."},{"id":"code-empty-catch-js","dimension":"code","description":"Empty catch block that silently swallows an exception (JS/TS).","match":"catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}","match_type":"regex","severity":"high","false_positive_risk":"low","fix":"Log the error and either rethrow or handle a specific failure mode.","example":"AI: 'try { risky(); } catch (e) {}' Better: 'catch (e) { throw new ValidationError(e.message); }'"},{"id":"code-bare-except-python","dimension":"code","description":"Bare or broad except clause that swallows the exception without handling it (Python), including the same-line 'except: pass' form.","match":"except(\\s*(Exception|BaseException)?)\\s*:\\s*(\\n\\s*)?(pass|return None|continue)\\b","match_type":"regex","severity":"high","false_positive_risk":"low","fix":"Catch specific exception types and log/handle each.","example":"AI: 'try: db.execute(query) except: pass' Better: 'except IntegrityError as e: log.error(e); raise'"},{"id":"code-todo-stub-comments","dimension":"code","description":"TODO/FIXME/HACK/XXX comments left in code intended to ship, indicating unfinished scaffolding.","match":"(//|#|/\\*)\\s*(TODO|FIXME|HACK|XXX)\\b","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Resolve the TODO or file it as a tracked issue and remove from source.","example":"AI: 'if (true) { handleSuccess(); } else { // TODO: handle error }'"},{"id":"code-console-log-leftover","dimension":"code","description":"console.log/debug statements left in production-bound code.","match":"console\\.(log|debug)\\(","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Remove or replace with a proper logger behind a debug flag.","example":"AI leaves 'console.log(data)' inside a shipped component."},{"id":"code-dead-branch-if-true","dimension":"code","description":"Dead/always-true conditional branch, a sign of unfinished or scaffolded logic.","match":"if\\s*\\(\\s*true\\s*\\)|if\\s+True\\s*:","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Replace the literal with the real condition.","example":"AI: 'if (true) { handleSuccess(); } else { /* TODO */ }' Better: 'if (success) { handleSuccess(); } else { handleError(); }'"},{"id":"code-transition-all-css","dimension":"code","description":"CSS `transition: all` animates every property including layout-affecting ones, causing jank; a common AI default.","match":"transition:\\s*all\\b","match_type":"regex","severity":"low","false_positive_risk":"low","fix":"List only the properties you intend to animate (prefer transform/opacity).","example":"AI: 'transition: all 0.3s ease;' Better: 'transition: opacity 0.3s ease, color 0.3s ease;'"},{"id":"code-hardcoded-secret","dimension":"code","description":"Hardcoded credential-shaped string assigned to a key/secret/password variable.","match":"(api[_-]?key|secret|password|token)\\s*[:=]\\s*['\"][A-Za-z0-9_\\-]{16,}['\"]","match_type":"regex","severity":"high","false_positive_risk":"medium","fix":"Move to environment variables or a secrets manager.","example":"const apiKey = \"sk_live_1234567890abcdef1234\";"},{"id":"code-narrative-trivial-comment","dimension":"code","description":"Comment restating an obvious one-line operation instead of explaining intent ('// loop through array', '// increment counter', '// create array').","match":"(//|#)\\s*(loop through|iterate through|increment (the )?counter|create (a |an )?(array|variable|object)|set (the )?variable|get (the )?item|add to (the )?(sum|total|array))\\b","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Delete restating comments; only comment non-obvious business logic.","example":"AI: '// Loop through array\\nfor (let i = 0; i < arr.length; i++) {'"},{"id":"code-ellipsis-truncation-comment","dimension":"code","description":"Placeholder comment indicating omitted/truncated code, signaling an incomplete file was shipped.","match":"(//|#)\\s*(\\.\\.\\.\\s*)?(rest of (the )?(code|file|middleware)|remains the same|add more (fields|logic) as needed)","match_type":"regex","severity":"high","false_positive_risk":"low","fix":"Ship the complete file with no ellipsis placeholders.","example":"AI: 'function handler() { /* ... rest of middleware ... */ }'"},{"id":"code-generic-variable-names","dimension":"code","description":"Non-descriptive placeholder variable names (data, result, temp, tempVar, output) used for non-trivial values.","match":"\\b(const|let|var)\\s+(data|result|temp|tempVar|output|response)\\s*=","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Rename to what the value actually represents (e.g. userProfiles, paymentResponse).","example":"AI: 'const data = fetchFromAPI(); const result = data.map(item => item.value);'"},{"id":"code-fake-jsdoc-throws","dimension":"code","description":"JSDoc/docstring @throws or behavior claim with no corresponding validation/error-throwing code in the function body.","match":"@throws\\s*\\{[^}]+\\}","match_type":"regex","severity":"medium","false_positive_risk":"high","fix":"Verify the documented behavior actually exists in the implementation, or remove the claim.","example":"@throws {ValidationError} documented but function body has no try-catch or validation logic."},{"id":"visual-purple-pink-gradient-tw","dimension":"visual","description":"Tailwind purple/violet-to-pink/blue/indigo gradient utility classes anchored to an actual gradient direction utility, the most common AI visual fingerprint.","match":"bg-gradient-to-[a-z]{1,2}\\s+from-(purple|violet|indigo)-[3-9]00\\s+to-(pink|fuchsia|blue|cyan|indigo)-[3-9]00","match_type":"regex","severity":"medium","false_positive_risk":"low","fix":"Replace with a brand-specific two-color pairing defined in tailwind.config, or drop the gradient.","example":"class=\"bg-gradient-to-r from-purple-600 to-pink-600\""},{"id":"visual-purple-gradient-css","dimension":"visual","description":"Raw CSS linear-gradient using the exact canonical AI-default purple/violet-to-blue/cyan/pink hex values.","match":"linear-gradient\\([^)]*#(7c3aed|8b5cf6|6366f1|a855f7)[^)]*,\\s*#(06b6d4|3b82f6|ec4899|22d3ee)","match_type":"regex","severity":"low","false_positive_risk":"low","fix":"Use a brand-derived palette instead of the statistical-default purple/pink.","example":"background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);"},{"id":"visual-glassmorphism-navbar","dimension":"visual","description":"Frosted-glass transparency effect (backdrop-blur combined with a low-opacity white/black background) commonly overused on navbars and cards.","match":"backdrop-blur(-\\w+)?[^\"']{0,40}bg-(white|black)\\/(5|10|20)\\b","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Use a solid opaque background or elevation shadow instead of transparency.","example":"class=\"backdrop-blur-md bg-white/10\""},{"id":"visual-inter-font-family","dimension":"visual","description":"Inter used as the sole/default font family \u2014 the most statistically common AI-default typeface.","match":"font-family:\\s*['\"]?Inter['\"]?","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Commit to a distinctive serif, geometric sans, or system font pairing instead of the default.","example":"body { font-family: 'Inter', sans-serif; }"},{"id":"visual-tailwind-indigo-500-default","dimension":"visual","description":"Unmodified Tailwind default-hue-band accent color (indigo/blue/violet 500-600), the historical shadcn/Tailwind UI default that AI models learned as 'good UI color', when no custom --color-primary token is defined nearby.","match":"(bg|text|border|ring)-(indigo|blue|violet)-(500|600)\\b(?![\\s\\S]{0,500}--color-primary)","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Override with a custom brand color token in tailwind.config.js.","example":"<button class=\"bg-indigo-500\">"},{"id":"visual-shadcn-zinc-palette-unmodified","dimension":"visual","description":"Default shadcn/ui zinc or slate gray palette used directly with no tailwind.config override, signaling an untouched template.","match":"(bg|text|border)-(zinc|slate)-(50|100|900|950)\\b","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Shift hue or lighten/darken the neutral palette in tailwind.config.js.","example":"<div class=\"bg-white text-zinc-900\">"},{"id":"visual-rounded-2xl-shadow-combo","dimension":"visual","description":"rounded-2xl combined with shadow-lg applied broadly (buttons, cards, inputs) in either class order, an AI over-rounding default.","match":"rounded-2xl[^\"']{0,40}shadow-lg|shadow-lg[^\"']{0,40}rounded-2xl","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Use smaller/varied radii (4-8px) and lighter shadows differentiated by element importance.","example":"<button class=\"rounded-2xl shadow-lg\">"},{"id":"visual-colored-left-border-strip","dimension":"visual","description":"Single colored 3-4px left border strip on card containers \u2014 the single most statistically reliable AI-UI tell. Context-dependent: blockquotes and callouts legitimately use a 3-4px left border, so weigh hits by where the rule sits.","match":"border-l-4\\s+border-(indigo|purple|blue|teal|violet)-[3-6]00|border-left:\\s*[3-4]px solid","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Differentiate cards via whitespace, background tint, or elevation instead of a colored left border.","example":"<div class=\"border-l-4 border-indigo-500 rounded-lg p-4\">"},{"id":"visual-emoji-as-ui-icons","dimension":"visual","description":"Emoji characters (including plain/heavy checkmarks) used as feature-list bullets or UI icons instead of a real icon system.","match":"^[\\s]*[\ud83d\ude80\u26a1\ud83d\udca1\ud83d\udd27\ud83d\udcca\u2728\ud83c\udfaf\ud83d\udd25\ud83d\udcaa\u2705\ud83c\udf1f\ud83c\udf89\u2713\u2714]\\s","match_type":"regex","severity":"low","false_positive_risk":"low","fix":"Replace with monoline SVG icons from a consistent icon set.","example":"\ud83d\ude80 Fast performance\\n\u26a1 Real-time updates\\n\ud83d\udca1 Intuitive design"},{"id":"visual-bounce-overshoot-easing","dimension":"visual","description":"Cubic-bezier easing with an overshoot value greater than 1 (bounce/elastic effect) on hover/micro-interactions.","match":"cubic-bezier\\([^)]*1\\.[3-9]\\d*","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Use a deceleration curve like cubic-bezier(0.4, 0, 0.2, 1) for functional UI animation.","example":"transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);"},{"id":"visual-uniform-spacing-scale","dimension":"visual","description":"The exact same padding/gap utility (e.g. p-4 gap-4) repeated identically across hero, cards, and footer sections with no rhythm variation.","match":"gap-4[\\s\\S]{0,400}gap-4[\\s\\S]{0,400}gap-4","match_type":"heuristic","severity":"low","false_positive_risk":"high","fix":"Vary spacing by section importance (tighter for dense UI, looser for hero/marketing sections).","example":"Hero, cards, and footer all using identical p-8 gap-4."},{"id":"visual-three-card-grid-structure","dimension":"visual","description":"grid-cols-3 combined with three structurally-identical child cards (same depth, same class pattern, similar copy length) \u2014 the canonical AI landing-page layout.","match":"grid-cols-3","match_type":"heuristic","severity":"low","false_positive_risk":"high","fix":"Use an asymmetric grid, 2/4/5-column layout, or vary card heights/content density.","example":"<div class=\"grid grid-cols-3 gap-6\"> with three identical <Card> children."},{"id":"ux-icon-only-button-no-label","dimension":"ux","description":"A <button> whose only child is an icon/svg with no aria-label, aria-labelledby, or visible text \u2014 fails accessibility and hides intent.","match":"<button(?![^>]*aria-label)(?![^>]*\\btitle=)[^>]*>\\s*(?:<(?:svg|i|Icon)\\b[^>]*/>|<(svg|i|Icon)\\b[^>]*>(?:(?!<\/button>)[\\s\\S]){0,600}?<\/\\1>)\\s*<\/button>","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Add aria-label describing the action, or include visible text alongside the icon.","example":"<button><Icon name=\"menu\" /><\/button> -> <button aria-label=\"Open navigation menu\"><Icon name=\"menu\" /><\/button>"},{"id":"ux-placeholder-as-primary-copy","dimension":"ux","description":"Generic placeholder/filler text used as shipped UI copy instead of task-specific content.","match":"placeholder=[\"'](Enter text( here)?|Click here|Type here|Select an option)[\"']","match_type":"regex","severity":"medium","false_positive_risk":"low","fix":"Replace with concrete, task-specific placeholder copy (e.g. 'First name (e.g., Jane)').","example":"<input placeholder=\"Enter text here\" />"},{"id":"ux-lorem-ipsum-content","dimension":"ux","description":"Lorem ipsum filler text shipped in place of real content.","match":"lorem ipsum","match_type":"substring","severity":"high","false_positive_risk":"low","fix":"Replace with real copy before shipping.","example":"<Card>Lorem ipsum dolor sit amet...<\/Card>"},{"id":"ux-dual-generic-cta","dimension":"ux","description":"The canonical AI hero pattern: exactly two buttons reading 'Get Started' and 'Learn More' co-occurring.","match":"Get Started[\\s\\S]{0,300}Learn More","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Use a single, specific primary CTA with product-relevant wording.","example":"<button>Get Started<\/button> <button>Learn More<\/button>"},{"id":"ux-icon-only-buttons-no-secondary-variant","dimension":"ux","description":"All buttons in a file share the exact same filled-primary class combination with no outline/ghost secondary variant defined.","match":"class=\"[^\"]*bg-(blue|indigo)-500[^\"]*text-white[^\"]*\"","match_type":"heuristic","severity":"low","false_positive_risk":"high","fix":"Define outline/ghost secondary and tertiary button variants for non-primary actions.","example":"Every CTA in the file is a filled blue button with no outline variant."},{"id":"copy-vocabulary-tier2","dimension":"copy","description":"Second-tier AI vocabulary cluster of ordinary business-speak nouns/adjectives (cutting-edge, empower, streamline, innovative, showcase, landscape, realm, ecosystem, multifaceted, best-in-class, future-ready) that are individually common English words.","match":"\\b(cutting-edge|empower(s|ed|ing)?|streamline[sd]?|innovative|showcas(e|ing|ed)|landscape|realm|ecosystem|multifaceted|best-in-class|future-ready)\\b","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Only treat as signal when 2+ distinct terms cluster in the same paragraph; a lone 'ecosystem' or 'landscape' is very likely legitimate usage.","example":"AI: 'Our cutting-edge platform empowers you to navigate the ever-changing landscape of this multifaceted ecosystem.'"},{"id":"copy-rule-of-three-bold-bullets","dimension":"copy","description":"Bulleted list item with a bolded keyword followed by a colon, a mechanical rule-of-three formatting habit when the pattern repeats 3+ times consecutively.","match":"^[-*]\\s*\\*\\*[^*]{2,30}\\*\\*:\\s","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Flag only when the pattern repeats 3+ times consecutively in the same list; vary bullet structure/length instead of bold-keyword-colon for every item.","example":"'- **Speed**: Faster processing.\\n- **Scale**: Bigger capacity.\\n- **Security**: Better protection.'"},{"id":"code-stub-placeholder-body","dimension":"code","description":"Function/method body that is only a placeholder (todo!(), raise NotImplementedError, bare pass, or a lone ellipsis line) shipped as if complete.","match":"\\btodo!\\(\\)|raise NotImplementedError|\\bpass\\s*$(?=\\s*(#.*)?$)|^\\s*\\.\\.\\.\\s*$","match_type":"regex","severity":"medium","false_positive_risk":"high","fix":"Implement the body fully, or raise an explicit NotImplementedError tied to a tracked ticket instead of a silent pass/ellipsis.","example":"def process_data(data):\\n    # TODO: implement later\\n    pass"},{"id":"code-mutable-default-arg","dimension":"code","description":"Python function defined with a mutable default argument (a list or dict literal), a classic accidental-shared-state bug.","match":"def\\s+\\w+\\([^)]*=\\s*(\\[\\]|\\{\\})[^)]*\\)","match_type":"regex","severity":"medium","false_positive_risk":"low","fix":"Use None as the default and construct the mutable object inside the function body.","example":"AI: 'def add_item(item, items=[]): items.append(item); return items' Better: 'def add_item(item, items=None): items = items or []; ...'"},{"id":"code-div-role-button","dimension":"code","description":"A clickable <div> given an ARIA role instead of native semantic HTML (button/checkbox/link).","match":"<div[^>]*\\brole=[\"'](button|checkbox|link)[\"']","match_type":"regex","severity":"medium","false_positive_risk":"low","fix":"Use the native <button>, <input type=checkbox>, or <a> element instead of re-implementing its semantics on a div.","example":"<div role='button' onclick='...'>Click me<\/div> -> <button onclick='...'>Click me<\/button>"},{"id":"code-floating-promise-map-async","dimension":"code","description":"Fire-and-forget async callback passed to .map() with no surrounding await/Promise.all, silently dropping rejections.","match":"\\.map\\(\\s*async\\b","match_type":"regex","severity":"medium","false_positive_risk":"high","fix":"Confirm the surrounding expression is not already wrapped in Promise.all(...); if it is, this is fine. If not, wrap it or replace with a for-loop with await.","example":"users.map(async (u) => saveUser(u)); // unhandled rejections -> await Promise.all(users.map(async (u) => saveUser(u)));"},{"id":"code-inconsistent-abbreviation-casing","dimension":"code","description":"Non-idiomatic camelCase abbreviation handling (e.g. loadHTTPURL instead of loadHttpUrl).","match":"\\b[a-z][a-zA-Z]*(HTTP|URL|XML|API|ID|JSON)[A-Z][a-zA-Z]*\\b","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Pick one abbreviation-casing convention for the codebase and apply it consistently; this is a style-consistency check, not proof of AI authorship.","example":"loadHTTPURLFromCache -> loadHttpUrlFromCache (or keep full-caps consistently, per your style guide)."},{"id":"code-mixed-default-named-exports","dimension":"code","description":"A single file mixes 'export default' and named 'export const' exports.","match":"export default[\\s\\S]*export const|export const[\\s\\S]*export default","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Only worth flagging if the file's own export convention is otherwise consistently one style; don't treat this as a slop signal on its own.","example":"export default function Button() {} \\n export const ButtonVariant = {...}"},{"id":"code-ai-builder-dom-markers","dimension":"code","description":"Leftover DOM attributes or comments from AI web-builder tools (v0, Lovable, Bolt.new, GPT Engineer) shipped into production markup.","match":"data-(v0|lovable|bolt|gpte)-[\\w-]+|<!--\\s*(Generated by|Built with)\\s*(v0|Lovable|Bolt\\.new|GPT Engineer)","match_type":"regex","severity":"high","false_positive_risk":"low","fix":"Strip all builder-tool data attributes and generated-by comments before shipping.","example":"<div data-v0-block-id=\"abc123\">...<\/div>"},{"id":"visual-glassmorphism-css-raw","dimension":"visual","description":"Raw CSS glassmorphism effect (backdrop-filter blur paired with a low-opacity white rgba background), the non-Tailwind counterpart of the utility-class glassmorphism tell.","match":"backdrop-filter:\\s*blur\\(\\d+px\\)[\\s\\S]{0,80}rgba\\(255,\\s*255,\\s*255,\\s*0\\.\\d+\\)","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Use a solid opaque background or elevation shadow instead of transparency, or reserve it for one deliberate overlay element.","example":"background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);"},{"id":"visual-gradient-text-clip","dimension":"visual","description":"Gradient headline text via background-clip:text, an AI marketing-page signature when paired with the default purple/blue palette.","match":"(-webkit-)?background-clip:\\s*text","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Only a meaningful tell in combination with the default purple/blue gradient palette; on its own it's a neutral CSS technique.","example":"h1 { background: linear-gradient(90deg, #7c3aed, #06b6d4); -webkit-background-clip: text; color: transparent; }"},{"id":"visual-neon-glow-card-border","dimension":"visual","description":"Neon cyan/violet glow box-shadow on card/element borders over a dark background, a code-generator (v0/Cursor) visual trademark.","match":"box-shadow:[^;]*0\\s+0\\s+\\d+px\\s+\\d*px?\\s*(#22d3ee|#a855f7|cyan|violet)","match_type":"regex","severity":"medium","false_positive_risk":"medium","fix":"Use a subtle elevation shadow in a brand-neutral color instead of a saturated neon glow.","example":"box-shadow: 0 0 20px 4px #a855f7;"},{"id":"visual-badge-pill-class","dimension":"visual","description":"Pill-shaped badge above a headline using rounded-full plus small padding plus a tinted background utility combo.","match":"rounded-full[^\"'>]{0,30}(px-3|px-4)[^\"'>]{0,30}(py-1)[^\"'>]{0,40}(bg-(blue|indigo|purple|violet)-100)","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Pill badges are a legitimate UI pattern; only worth noting alongside other AI-default tells (purple/indigo palette, Inter, three-card grid) rather than on its own.","example":"<span class=\"rounded-full px-3 py-1 bg-indigo-100 text-indigo-700\">New<\/span> above a hero headline."},{"id":"visual-centered-hero-cta","dimension":"visual","description":"Centered hero heading with a centered, mx-auto primary CTA button directly beneath it \u2014 the canonical AI landing-page hero layout.","match":"text-center[\\s\\S]{0,120}mx-auto[\\s\\S]{0,40}<(button|a)\\b","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Only meaningful combined with other tells (three-card grid, purple gradient, Inter font); on its own, centered heroes are normal.","example":"<div class=\"text-center\"><h1>...<\/h1><div class=\"mx-auto\"><button>Get Started<\/button><\/div><\/div>"},{"id":"ux-generic-empty-state","dimension":"ux","description":"Empty state rendered as a bare 'No results'/'No data' message with no explanation, illustration, or next-step CTA.","match":"^(No results( found)?|No data( available)?)$","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Explain why the list is empty and offer a concrete next action instead of a bare status line.","example":"Slop: blank page + 'No results found'. Better: 'You haven't uploaded a document yet \u2014 create your first one to get started.'"},{"id":"ux-generic-error-message","dimension":"ux","description":"Vague, non-actionable error text with no stated cause or recovery path ('Something went wrong', 'An error occurred', 'Error!').","match":"^(Something went wrong\\.?|An error occurred\\.?|Error!?)$","match_type":"regex","severity":"medium","false_positive_risk":"high","fix":"Name the actual problem and give a concrete recovery step instead of a generic fallback string.","example":"Slop: 'Something went wrong.' Better: 'We couldn't save your changes \u2014 check your connection and try again.'"},{"id":"ux-fake-name-placeholder-data","dimension":"ux","description":"Obviously fake mock data shipped in a final UI (Jane Doe, John Doe, User Name, $0.00) instead of realistic sample content.","match":"\\b(Jane Doe|John Doe|User Name|\\$0\\.00)\\b","match_type":"regex","severity":"low","false_positive_risk":"high","fix":"Replace with realistic sample data reflecting real names, amounts, and string lengths the product will actually show.","example":"Slop: profile card showing 'Jane Doe' / '$0.00'. Better: a realistic example profile with plausible name and balance."},{"id":"ux-indeterminate-spinner-loading-text","dimension":"ux","description":"Indeterminate spinner class paired with generic 'Loading...' text and no skeleton or progress indicator.","match":"class=[\"'][^\"']*\\b(spinner|animate-spin)\\b[^\"']*[\"'][\\s\\S]{0,80}Loading\\.{3}","match_type":"regex","severity":"low","false_positive_risk":"medium","fix":"Replace with a skeleton screen that matches the final layout, or a determinate progress indicator where possible.","example":"<div class=\"animate-spin spinner\"><\/div><span>Loading...<\/span>"},{"id":"ux-happy-path-only-no-guards","dimension":"ux","description":"A list/data render (`{items.map(...)}`) with no visible loading, error, or empty-state guard around it in the surrounding component.","match":"\\{(\\w+)\\.map\\(","match_type":"heuristic","severity":"low","false_positive_risk":"high","fix":"Only flag when the surrounding component genuinely lacks loading/error/empty branches \u2014 a bare match on `.map(` is not sufficient signal on its own.","example":"{items.map(item => <Card {...item} />)} with no isLoading, error, or items.length === 0 check anywhere in the component."},{"id":"ux-tab-order-mismatch","dimension":"ux","description":"Inline float/absolute positioning that visually reorders content without a matching tabindex, breaking keyboard navigation order.","match":"style=[\"'][^\"']*\\b(float|position:\\s*absolute)\\b[^\"']*[\"'](?![\\s\\S]{0,50}tabindex)","match_type":"heuristic","severity":"low","false_positive_risk":"high","fix":"Keep DOM order equal to reading/visual order, or add explicit tabindex values that restore the correct keyboard navigation sequence.","example":"A sidebar positioned with `position: absolute` appears first visually but is last in the DOM, so Tab lands on it last too."}]</script>
+<script id="rule-data" type="application/json">[{"dimension":"visual","slop":"Purple-to-blue/pink gradient paired with Inter font as the default hero treatment","instead":"Commit to a project-specific 2-3 hue palette that avoids the 200-290\u00b0 blue/indigo/violet band entirely, pair a distinctive display/serif headline face against a different body face, and lock both in a DESIGN.md before generating anything","why":"This exact pairing is the single most recognized AI fingerprint, appearing in an estimated 40-75% of raw AI output and readable as AI-made in under two seconds by any designer. It traces to Tailwind's indigo-500 default and Inter's ubiquity in training data \u2014 it reads as an unmade design choice, not a brand","example":"Slop: bg-gradient-to-r from-purple-600 to-pink-600, font-family: Inter everywhere. Better: a custom rust-and-forest palette with Fraunces headlines over IBM Plex Sans body text","impact":"high"},{"dimension":"visual","slop":"A colored 3-4px left-border strip on every card","instead":"Differentiate containers with whitespace first, then background tint, then elevation shadow \u2014 skip the border stripe entirely","why":"This single decorative pattern is copied almost verbatim from shadcn/ui and Tailwind tutorials; spotting it on 2+ elements is near-certain proof of AI generation","example":"Slop: every dashboard card has a 4px indigo left border. Better: cards separated by gap-8 spacing and a subtle bg-neutral-50 shift, no border at all","impact":"high"},{"dimension":"visual","slop":"Centered hero + exactly three identical feature cards, repeated as the whole-page skeleton","instead":"Vary card count deliberately (2, 4, or 5), use an asymmetric grid, and give each card a different copy length and visual weight","why":"Hero-badge-headline-then-3-cards is a memorized template sequence, not a layout decision \u2014 it appears in 70-90% of raw AI output regardless of content","example":"Slop: 3 equal-width white cards, same icon position, same copy length. Better: a 2-column + 1-spanning-card grid where the spanning card carries more detail because it's the most important feature","impact":"high"},{"dimension":"visual","slop":"Shipping the raw, unedited Tailwind/shadcn palette (zinc-900, indigo-500, gray-700)","instead":"Override tailwind.config.js theme.extend.colors with brand-specific hex values before writing any component","why":"Every AI-generated project starts from the same default file; not touching it is the fastest visible signal of zero design intent","example":"Slop: bg-white text-zinc-900. Better: define brand-primary: #0F766E and brand-ink: #1a1a1a, then use those exclusively","impact":"high"},{"dimension":"visual","slop":"Glassmorphism (backdrop-blur + low-opacity panels) applied to every surface \u2014 navbars, cards, modals alike","instead":"Reserve blur/transparency for at most one high-impact element (a hero overlay or single modal); make everything else solid","why":"Blanket glass effects tank contrast (often below 4.5:1) and read as visual noise rather than depth, and blanket application specifically (not the effect itself) is the AI tell","example":"Slop: nav, cards, and buttons all use backdrop-blur-md bg-white/10. Better: solid bg-gray-900 nav, opaque cards, blur used only on one onboarding overlay","impact":"high"},{"dimension":"ux","slop":"Interfaces designed only for the happy path \u2014 no empty state, loading state, or error state","instead":"Explicitly design and build all four states for every data view: loading skeleton, empty state with a next action, error state with recovery, and populated state","why":"Production UIs are 60-70% state-handling code; shipping only the loaded view is the clearest sign nobody thought past the demo","example":"Slop: {items.map(item => ...)} with no guard. Better: if (isLoading) return <Skeleton/>; if (error) return <ErrorRetry/>; if (!items.length) return <EmptyState message=\"You haven't uploaded a document yet \u2014 create your first one to get started\" cta=\"Add your first item\"/>","impact":"high"},{"dimension":"ux","slop":"Icon-only buttons shipped with no accessible label","instead":"Add aria-label (or visible text) to every icon-only interactive element as a non-negotiable default","why":"This fails WCAG AA immediately and also fails plain usability for first-time users \u2014 it's cheap to fix and expensive to ship broken","example":"Slop: <button><MenuIcon/><\/button>. Better: <button aria-label=\"Open navigation menu\"><MenuIcon/><\/button>","impact":"high"},{"dimension":"ux","slop":"Interfaces that miss the bulk of WCAG requirements \u2014 low contrast, no focus rings, non-semantic markup","instead":"Write explicit, measured accessibility requirements into every build spec: semantic HTML5 only, WCAG AA (4.5:1) minimum contrast, visible focus indicator and aria-label on every interactive element \u2014 then verify with an automated pass plus one manual keyboard-only run","why":"Vague requests like 'make it accessible' get ignored; automated tools alone only catch 20-30% of criteria, so a manual check is required","example":"Prompt slop: 'make it accessible.' Better: 'Every interactive element needs a visible focus ring and an aria-label; use native <button> instead of <div role=\"button\">; body text must pass 4.5:1 contrast; verify with keyboard-only navigation before shipping'","impact":"high"},{"dimension":"copy","slop":"Hedging stacks \u2014 multiple uncertainty markers chained in one clause ('could potentially possibly suggest', 'it is important to note that... almost always... arguably')","instead":"State the claim directly with at most one qualifier, or commit to it outright","why":"Stacked hedges are 3-5x baseline in LLM output and are one of the most mechanically detectable AI tells; they signal the model padding against a low-confidence claim rather than a writer with a point of view","example":"Slop: 'It is important to note that this almost always requires, as experts argue, careful consideration.' Better: 'This needs careful thought.'","impact":"high"},{"dimension":"copy","slop":"Buzzword vocabulary cluster \u2014 leverage, robust, seamless, delve, paradigm, unlock, elevate, empower, garner, tapestry","instead":"Replace every instance with a concrete verb tied to a specific action or number","why":"These roughly 40 words run at 11-28x their normal frequency in LLM output (Max Planck Institute, 2024) \u2014 statistically overused post-2022 at rates far above human baselines; three or more in five lines is a near-certain tell, and they carry no real information","example":"Slop: 'Robustly leverage seamless paradigm shifts to elevate your workflow.' Better: 'This cuts setup time from 20 minutes to 3.'","impact":"high"},{"dimension":"copy","slop":"Corporate transition cascade opening successive paragraphs \u2014 Furthermore, Moreover, Additionally, Consequently","instead":"Delete the connector and let the next sentence carry its own weight, or replace with a natural spoken transition","why":"These formal connectors appear 3-5x more often in AI text than in human prose and pad without adding logical flow","example":"Slop: 'The platform is fast. Furthermore, it is secure. Moreover, it scales.' Better: 'Fast, secure, and it scales.'","impact":"high"},{"dimension":"copy","slop":"Metronomic sentence length \u2014 nearly every sentence lands in the same 15-25 word band, producing a flat, robotic rhythm","instead":"Deliberately alternate short punchy fragments (under 6 words) with long explanatory sentences; aim for a 2-3:1 length variance","why":"Humans naturally burst between short and long sentences; uniform pacing is detectable by ear (read it aloud) and by scanning tools alike","example":"Slop: 'The system provides solutions. It ensures integration. It delivers reliability.' Better: 'Deploy it. It handles enterprise load, integrates with your existing auth, and doesn't fall over at 10k concurrent users.'","impact":"high"},{"dimension":"copy","slop":"Generic marketing openers and claims \u2014 'In today's fast-paced world,' 'Elevate your workflow,' 'Unlock your potential'","instead":"Lead with the actual problem, a concrete scenario, or a specific number instead of a temporal or aspirational clich\u00e9","why":"These phrases are so overrepresented in training data they function as an instant AI signature and carry zero product-specific information","example":"Slop: 'In today's fast-paced world, staying competitive means embracing innovation.' Better: 'Our slowest customer still ships 3 features a week.'","impact":"high"},{"dimension":"copy","slop":"Abstract claims with no concrete grounding \u2014 'improves efficiency,' 'drives significant growth,' 'many experts agree'","instead":"Ground every claim in a named number, date, source, or example (specificity insertion)","why":"AI defaults to unfalsifiable abstraction because it avoids commitment; named numbers and sources are expensive to fabricate and read as credible precisely because they're specific","example":"Slop: 'This approach will achieve significant growth in market share.' Better: 'Regional sales grew 15% year-over-year after we shipped same-day shipping.'","impact":"high"},{"dimension":"code","slop":"Empty or near-empty catch blocks that silently swallow exceptions","instead":"Catch specific exception types, log with context, and either handle the case explicitly or rethrow a typed error","why":"Bare except/catch masks real failures (including security bugs) and makes production debugging impossible; this shows up in ~25-30% of AI-generated snippets across languages","example":"Slop: try { risky(); } catch (e) {}. Better: try { risky(); } catch (e) { logger.error('X failed', e); throw new ValidationError(e.message); }","impact":"high"},{"dimension":"code","slop":"Imports for packages, functions, or files that don't actually exist","instead":"Verify every import resolves against the actual dependency tree and file system, and run a build before declaring the task done","why":"LLMs confidently hallucinate plausible-looking API surface that was never installed or written \u2014 not a typo, a fabrication","example":"Slop: import { extractData } from 'nonexistent-lib'; Better: confirm the package is in package.json and the export exists before using it","impact":"high"},{"dimension":"code","slop":"Fire-and-forget async calls with no await and no .catch() (floating promises)","instead":"Always await the call, return the promise, or attach an explicit .catch() handler","why":"Unhandled promise rejections fail silently in production and are one of the most common runtime-breaking patterns in generated code","example":"Slop: users.map(async (u) => saveUser(u)); Better: await Promise.all(users.map(u => saveUser(u)));","impact":"high"},{"dimension":"code","slop":"Logic that assumes inputs are always present, valid, and successful \u2014 no null checks, no empty-array guards, no failure paths","instead":"Handle every non-ideal input explicitly: null/undefined, empty collections, and failed calls, each with its own defined behavior","why":"This is the default because training examples show the demo path, not the production path; it's the leading cause of AI code that passes review but breaks on real traffic","example":"Slop: const first = data[0].id; Better: if (!data?.length) return handleEmpty(); const first = data[0].id;","impact":"high"},{"dimension":"code","slop":"Semantic bugs hidden inside clean, lint-passing code \u2014 off-by-one loops, wrong comparison operator, inverted condition","instead":"Add type hints and run strict static analysis (mypy/pyright) as a first pass, then write test cases (including edge cases and, where logic is non-trivial, property-based tests) before trusting generated logic, not after a bug report","why":"Over 60% of faults in AI-generated code are semantic, not syntactic \u2014 the code runs and looks right, so linting alone won't catch it; strict type checking alone catches roughly 94% of the errors that matter, but it isn't a substitute for testing boundary conditions","example":"Slop: for (let i = 1; i <= arr.length; i++) { process(arr[i]); } \u2014 skips index 0, crashes on the last index. Better: for (let i = 0; i < arr.length; i++)","impact":"high"},{"dimension":"code","slop":"Treating each AI session as a blank slate with no persistent constraints, re-explaining preferences in every prompt","instead":"Maintain one living config file (CLAUDE.md / DESIGN.md / .plain-english.yml) listing banned patterns across all four dimensions \u2014 fonts, colors, phrases, code smells \u2014 and reference it every session","why":"Negative constraints override statistical defaults far more reliably than positive adjectives ever do, and a persistent file means the fix compounds instead of resetting each conversation","example":"DESIGN.md: 'NEVER: purple gradients, Inter font, rounded-2xl on buttons, emoji bullets, empty catch blocks, the phrase leverage.' Read and enforced at the start of every session","impact":"high"},{"dimension":"code","slop":"No automated gate catching slop patterns before merge \u2014 relying on manual eyeballing","instead":"Wire a deterministic linter into CI (code: aislop / eslint-plugin-ai-guard; copy: plain-english / Slop Cop; visual: a Tailwind-class denylist) so violations fail the build, not just the code review","why":"These are 50+ rule, no-LLM-at-runtime static checks \u2014 cheap, deterministic, and they catch what a tired reviewer skims past","example":"CI step: aislop scan ./src --hard (fails build on narrative comments, phantom imports, swallowed exceptions, dead code)","impact":"high"},{"dimension":"visual","slop":"Rounded-2xl radius and shadow-lg applied identically to buttons, cards, and inputs with no differentiation","instead":"Vary radius and shadow by element importance \u2014 e.g. 16px on primary cards, 8px on secondary, 0 with a border stroke on feature blocks","why":"Uniform heavy rounding across every element type is a statistical-mean default, not a design decision, and flattens the hierarchy","example":"Slop: every element gets rounded-2xl shadow-lg. Better: primary card 16px radius + soft shadow; secondary card 8px radius, no shadow; feature block square with 1px border","impact":"medium"},{"dimension":"visual","slop":"Emoji used as feature-list bullets or icons (\ud83d\ude80, \u26a1, \ud83d\udca1)","instead":"Use a real icon system (monoline SVG, consistent stroke weight) or a plain text bullet","why":"Emoji don't align to a baseline grid, don't scale, and can't control weight \u2014 professional interfaces essentially never use them as functional UI elements","example":"Slop: \ud83d\ude80 Fast performance. Better: a 20px outline icon at a fixed stroke width, or a simple '\u2013' bullet","impact":"medium"},{"dimension":"visual","slop":"Perfectly centered, symmetric layouts on every section \u2014 hero, cards, footer all balanced identically","instead":"Introduce deliberate asymmetry: left-anchor headlines, offset images, unequal column grids, overlapping elements","why":"Mathematical symmetry is the statistically 'safest' composition and is what models default to absent any other signal; asymmetry reads as an intentional human choice","example":"Slop: centered heading, centered image, three centered columns below. Better: headline anchored left, hero image offset and overlapping the next section","impact":"medium"},{"dimension":"visual","slop":"Flat, uniform spacing everywhere (gap-4 p-4 on hero, cards, and footer alike)","instead":"Build a custom spacing scale and apply it with rhythm \u2014 generous space around the hero, tighter internal card padding, intentional variation between sections","why":"Uniform spacing feels robotic; real design uses tight and loose spacing deliberately to guide the eye","example":"Slop: p-4 gap-4 on every section. Better: hero p-12, card internals p-4 to p-6 with varying gaps, section margins my-8 to my-16 depending on content weight","impact":"medium"},{"dimension":"visual","slop":"Single generic sans-serif (Inter, Roboto, Arial) used for every text role with no pairing","instead":"Pair a distinctive display/serif headline face with a different, readable body font, and document the pairing","why":"A single default font signals no typographic decision was made \u2014 font choice alone removes a large share of the AI signature","example":"Slop: font-family: Inter for headings and body. Better: Fraunces (serif, bold) for headings, IBM Plex Sans for body","impact":"medium"},{"dimension":"ux","slop":"Bounce/elastic overshoot easing on hover and micro-interactions","instead":"Use ease-out or linear timing functions for functional animation (e.g. Material's cubic-bezier(0.4, 0, 0.2, 1))","why":"Overshoot easing is a template default, not a deliberate motion choice, and real interfaces use restrained easing for anything functional","example":"Slop: cubic-bezier(0.34, 1.56, 0.64, 1) on every button hover. Better: cubic-bezier(0.4, 0, 0.2, 1), or no easing at all for instant feedback","impact":"medium"},{"dimension":"ux","slop":"transition: all applied broadly instead of naming specific properties","instead":"List only the properties you intend to animate, and prefer transform/opacity for smooth 60fps motion","why":"Animating every property causes layout thrash and jank on properties that should snap instantly (display, z-index)","example":"Slop: transition: all 0.3s ease;. Better: transition: opacity 0.3s ease, transform 0.3s ease;","impact":"medium"},{"dimension":"ux","slop":"Cards nested inside cards inside cards as the default way to create visual grouping","instead":"Build hierarchy with negative space, type scale, and color instead of stacking containers","why":"Nesting containers is a reach-for-the-familiar default when the model doesn't understand hierarchy; it reads as unstructured rather than organized","example":"Slop: outer card > middle card > inner card, all with shadow-lg. Better: one card, internal sections separated by whitespace and a type-size shift","impact":"medium"},{"dimension":"ux","slop":"Placeholder or filler content shipped as if it were final \u2014 'Enter text here,' Lorem ipsum, generic 'Loading...'","instead":"Write real, task-specific copy and states before calling the UI done","why":"Designing against Lorem ipsum removes the context needed to make real hierarchy and emphasis decisions, guaranteeing generic output downstream","example":"Slop: <input placeholder=\"Enter text here\" />. Better: <input placeholder=\"First name (e.g. Jane)\" />","impact":"medium"},{"dimension":"ux","slop":"Rigid landing-page skeleton repeated regardless of product \u2014 hero, 3 features, stats bar, testimonials, 3-tier pricing, CTA","instead":"Derive section order and presence from actual user research and business priorities, dropping sections that don't earn their place","why":"This exact structure appears in 85%+ of AI-generated SaaS pages because it's a memorized template, not a decision based on this product's users","example":"Slop: every generated page follows the same 6-section order. Better: a technical developer tool skips testimonials and stats entirely in favor of a code sample and docs link","impact":"medium"},{"dimension":"copy","slop":"'Not just X, but Y' and other forced binary-contrast constructions","instead":"State a single direct claim without the contrast frame","why":"AI leans on this rhetorical move as a universal elevation device even when nothing is actually being contrasted","example":"Slop: 'This isn't just a tool, it's a paradigm shift.' Better: 'A tool for cleaning up AI writing.'","impact":"medium"},{"dimension":"copy","slop":"Rule-of-three forced lists \u2014 exactly 3 (or 5, or 7) benefits, reasons, or steps every time","instead":"Let the actual content determine list length \u2014 2, 4, 6, whatever is true \u2014 and vary structure across a document","why":"LLMs default to three items due to pretraining frequency, not because three is actually the right count for this content","example":"Slop: 'Three reasons: speed, reliability, cost.' Better: 'It's faster, more reliable, handles growth without new infrastructure, and costs less per transaction.'","impact":"medium"},{"dimension":"copy","slop":"Throat-clearing openers that add no information \u2014 'Here's the thing,' 'At its core,' 'It's worth noting'","instead":"Delete the preamble and open with the actual point","why":"These phrases exist to hedge before committing to a claim; cutting them tightens prose and reads as more confident","example":"Slop: 'Here's the thing: the platform streamlines workflows.' Better: 'The platform streamlines workflows.'","impact":"medium"},{"dimension":"copy","slop":"Vague, unlinked attribution \u2014 'experts argue,' 'studies show,' 'industry reports suggest'","instead":"Name the actual source, date, and link, or drop the claim entirely if you can't","why":"Vague attribution launders an unsupported claim into apparent authority without accountability","example":"Slop: 'Experts suggest AI will transform everything.' Better: 'McKinsey's 2024 report projects 15-40% cost reduction across six industries.'","impact":"medium"},{"dimension":"copy","slop":"Em-dash and semicolon overuse \u2014 2+ per paragraph, often used for every aside","instead":"Reduce to human baseline; favor periods and simple clause structure, reserving dashes for genuine emphasis","why":"LLM output uses em-dashes at 3-5x human baseline; clustering them is a detectable structural pattern independent of vocabulary","example":"Slop: 'The system \u2014 built on modern architecture \u2014 provides, seamlessly, integration.' Better: 'The system integrates seamlessly. It's built on modern architecture and scales to terabytes.'","impact":"medium"},{"dimension":"copy","slop":"Relying on manual proofreading alone to catch AI phrasing","instead":"Run copy through a deterministic banned-phrase linter (plain-english, Slop Cop) before publishing, and read the final draft aloud once","why":"Reading aloud reliably exposes metronomic rhythm that's easy to miss silently, and a regex linter catches the mechanical patterns (hedge stacks, corporate verbs) fast and for free","example":"plain-english check draft.md returns: 'Line 3: [warning] leverage \u2014 use \"use\" instead.'","impact":"medium"},{"dimension":"code","slop":"Narrative comments that restate exactly what the next line does","instead":"Delete comments on self-explanatory code; reserve comments for non-obvious business context (the 'why', not the 'what')","why":"AI defaults to explaining mechanism because it lacks the surrounding business context a human author would have; this bloats files without adding maintainability","example":"Slop: // loop through array\\nfor (const u of users) {...}. Better: // legacy accounts predate the 2023 email-verification requirement, skip them here\\nfor (const u of users) { if (!u.verified) continue; ... }","impact":"medium"},{"dimension":"code","slop":"Generic placeholder variable names \u2014 data, result, temp, output, response \u2014 used throughout non-trivial code","instead":"Name every variable after what it actually holds, tied to the domain","why":"Generic names are a fallback for missing context and make review and maintenance harder; specific names double as documentation","example":"Slop: const data = fetch(); const result = transform(data); Better: const userProfiles = fetchActiveUsers(); const enrichedProfiles = addMetadata(userProfiles);","impact":"medium"},{"dimension":"code","slop":"Unnecessary abstraction layers (factory/interface/wrapper) built for a problem with exactly one implementation","instead":"Challenge every abstraction during review: does it reduce duplication, enable testing, or improve readability? If not, delete it and keep the plain function","why":"AI over-engineers because it optimizes for looking complete rather than being minimal; a single-currency app doesn't need a DateFormatter interface","example":"Slop: an AbstractPriceFormatter with USD/EUR/GBP subclasses for a single-currency product. Better: function formatPrice(x) { return `$${x.toFixed(2)}`; }","impact":"medium"},{"dimension":"code","slop":"Dead code, unreachable branches, and TODO stubs left in place ('if (true) {...} else { // TODO: handle error }')","instead":"Finish the branch or delete it \u2014 don't ship scaffolding as if it were a decision","why":"These are leftover generation artifacts, not intentional placeholders, and they silently disable error handling in production","example":"Slop: if (true) { handleSuccess(); } else { // TODO }. Better: if (success) { handleSuccess(); } else { handleError(err); }","impact":"medium"},{"dimension":"code","slop":"Docstrings applied in lockstep on every function (Args/Returns/Raises even on a 2-line helper)","instead":"Document only where the behavior isn't obvious from the signature; let simple helpers stay undocumented","why":"Real codebases are heterogeneous \u2014 uniform templated documentation on trivial functions is itself an AI tell and adds noise without value","example":"Slop: full Args/Returns/Raises docstring on def add(x, y): return x + y. Better: def add(x, y): '''Sum two numbers.''' return x + y","impact":"low"},{"dimension":"visual","slop":"Oversaturated, hyperrealistic, shadow-free stock imagery","instead":"Use real photography with visible grain, texture, and asymmetric practical lighting","why":"AI-generated and AI-selected imagery defaults to mathematical perfection; texture and imperfection are what read as human-made in 2026","example":"Slop: a glossy, perfectly lit, symmetric hero photo. Better: a photo with visible grain, one harsh shadow, and an off-center subject","impact":"low"},{"dimension":"code","slop":"A single AI-authored commit that appears feature-complete with zero follow-up fixes in the next 24 hours","instead":"Review large single-shot commits with extra scrutiny, and require a real test pass (not just 'it compiled') before merge","why":"Real iterative work leaves a trail of dead ends, small fixes, and edge-case patches; a suspiciously clean 500+ line commit is a signal to slow down review, not speed it up","example":"Flag: 2,500 LOC feature landing in one commit with no follow-up commits \u2014 treat as unreviewed, not done","impact":"low"},{"dimension":"code","slop":"Silent failure by default \u2014 using .get() fallbacks or sentinel defaults (-1, None, empty string) on fields that must exist, instead of raising when required data is missing","instead":"Let required-field lookups raise loudly when the field is actually missing; reserve default fallbacks for genuinely optional fields only","why":"AI defaults to defensive coding that converts missing data into sentinel values instead of surfacing it, which masks data corruption at the exact point it would have been cheapest to catch and lets it surface much later as a mysterious downstream bug","example":"Slop: user_id = data.get('user_id', -1). Better: user_id = data['user_id'] \u2014 raises immediately if the field is actually missing.","impact":"medium"},{"dimension":"visual","slop":"Linear, Tailwind-inherited type scale \u2014 headings stepping 16/18/20/22px and spacing in flat 0.5rem/1rem/1.5rem increments","instead":"Define a multiplicative type scale (roughly a 1.25x-1.4x progression) and a custom spacing grid (4/8/12/16/24/32/40/48), enforced as tokens rather than picked ad hoc","why":"Uniform linear progression in both type and spacing produces the flat, samey hierarchy readers unconsciously associate with generated pages, because it's the arithmetic default absent any typographic decision","example":"Slop: font sizes 16, 18, 20, 22, 24 (linear +2px steps). Better: --font-size-sm: 16px; --font-size-base: 20px; --font-size-lg: 28px; --font-size-xl: 36px (1.4x scale).","impact":"medium"},{"dimension":"ux","slop":"Entrance animation (slide-in, fade, bounce) applied to every element by default, with no regard for prefers-reduced-motion","instead":"Animate only where motion carries real meaning \u2014 reveal, feedback, affordance \u2014 keep it to roughly 50-300ms, and respect prefers-reduced-motion unconditionally","why":"Blanket motion is a decoration reflex, not a design choice, and it actively harms users who've told their OS they want less of it \u2014 an accessibility miss layered on top of a visual tell","example":"Slop: every heading slides in on scroll, every card bounces on hover, no media query. Better: a single subtle fade on the hero only, and @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }","impact":"medium"},{"dimension":"code","slop":"Architectural bloat generated at scale \u2014 God classes owning unrelated responsibilities, 100+ line methods, and near-duplicate helper functions instead of one shared utility","instead":"Extract single-responsibility classes and functions, flatten wrapper-component hierarchies, and name components by what they do rather than by structure","why":"Multi-file AI agents centralize logic because it's locally easy within one generation pass, not because it's good architecture \u2014 the sheer volume of code an LLM produces at once outruns its own sense of when to split it up","example":"Slop: a single UserManager class handling auth, database access, logging, email, and billing. Better: split into UserAuth, UserRepository, NotificationService, and BillingService.","impact":"medium"},{"dimension":"ux","slop":"Active or selected UI states rendered lower-contrast than the disabled state, in service of a 'sleek' minimal look","instead":"Make active/selected states higher-contrast than idle, never lower, and reserve genuinely faded styling (60-70% opacity) for true disabled controls only","why":"Over-optimizing for a minimal aesthetic sacrifices basic legibility, and a faded 'active' button reads as broken \u2014 indistinguishable from disabled \u2014 to a real user scanning the screen","example":"Slop: active button text #e8e8e8 on #f5f5f5, visually weaker than the actually-disabled button beside it. Better: bold primary-color fill for the active state; true disabled state gets reduced opacity instead.","impact":"low"},{"dimension":"copy","slop":"False-cheerful tone with emoji headers and exclamation-heavy copy ('Hey! \ud83c\udf89 Let's build something amazing together! \ud83d\ude80')","instead":"Match tone to the actual audience \u2014 formal where the audience expects formal, plainly friendly where it doesn't \u2014 and use emoji only where it adds real meaning, if at all","why":"Buddy-buddy exclamatory copy was a genuine SaaS trend once; used reflexively today it reads as either AI-generated or simply inexperienced, regardless of which it actually is","example":"Slop: 'Hey, great job! \ud83c\udf89 Let's get started! \ud83d\ude80' Better: tone calibrated to the audience \u2014 formal and precise for B2B compliance software, plainly warm for a consumer journaling app.","impact":"low"},{"dimension":"copy","slop":"Copy that would be equally true of any competitor's product, with no claim specific enough to be falsifiable","instead":"Run the swap test on every core sentence: if it still reads true after replacing your product's name with a rival's, rewrite it until it doesn't","why":"Universal applicability is what LLMs default to because it minimizes the risk of being specifically, checkably wrong; real differentiation requires a claim that could actually be false for someone else","example":"Slop: 'Improve your team's productivity with our platform.' Better: 'Jira's slow \u2014 your engineers lose 3 hours a week chasing tickets. We cut that to 20 minutes.'","impact":"low"},{"dimension":"ux","slop":"Layout shift from async content \u2014 ads, late-loading data, or images pushing the rest of the page down with no space reserved in advance","instead":"Reserve space for anything that loads asynchronously with an explicit height, aspect-ratio, or a skeleton that matches the final layout","why":"Layout shift is invisible in a static screenshot but immediately felt by a real user mid-scroll, and it's one of the few slop tells that's also a hard, standardized metric (Cumulative Layout Shift, part of Core Web Vitals)","example":"Slop: an ad loads and shoves the article text down with nothing reserved. Better: a 200px placeholder with a fixed aspect-ratio that holds its spot until the ad resolves.","impact":"low"}]</script>
+<script>
+(function(){
+  "use strict";
+  var SIG = JSON.parse(document.getElementById('sig-data').textContent);
+  var RUL = JSON.parse(document.getElementById('rule-data').textContent);
+
+  var DIMS = [
+    {k:'visual', label:'Visual'},
+    {k:'ux',     label:'UX'},
+    {k:'copy',   label:'Copy'},
+    {k:'code',   label:'Code'}
+  ];
+  var SEVS = ['high','medium','low'];
+
+  var state = { mode:'sig', dim:'all', sev:'all', q:'' };
+
+  var grid = document.getElementById('grid');
+  var countEl = document.getElementById('count');
+  var qInput = document.getElementById('q');
+
+  function el(tag, cls, text){
+    var n = document.createElement(tag);
+    if(cls) n.className = cls;
+    if(text != null) n.textContent = text;
+    return n;
+  }
+  function dataset(){ return state.mode === 'sig' ? SIG : RUL; }
+  function sevOf(item){ return state.mode === 'sig' ? item.severity : item.impact; }
+
+  // ---- build filter chips ----
+  function chip(container, value, label, pressed){
+    var b = el('button', 'chip');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    b.dataset.value = value;
+    b.innerHTML = label;
+    container.appendChild(b);
+    return b;
+  }
+  function buildDimChips(){
+    var c = document.getElementById('dimChips');
+    c.textContent = '';
+    var d = dataset();
+    chip(c, 'all', 'All <span class="cn">' + d.length + '</span>', state.dim === 'all');
+    DIMS.forEach(function(dm){
+      var n = d.filter(function(x){ return x.dimension === dm.k; }).length;
+      chip(c, dm.k, dm.label + ' <span class="cn">' + n + '</span>', state.dim === dm.k);
+    });
+  }
+  function buildSevChips(){
+    var c = document.getElementById('sevChips');
+    c.textContent = '';
+    var d = dataset();
+    chip(c, 'all', 'All', state.sev === 'all');
+    SEVS.forEach(function(s){
+      var n = d.filter(function(x){ return sevOf(x) === s; }).length;
+      chip(c, s, s + ' <span class="cn">' + n + '</span>', state.sev === s);
+    });
+    document.getElementById('sevLabel').textContent = state.mode === 'sig' ? 'Severity' : 'Impact';
+  }
+
+  // ---- filtering ----
+  function matchesQuery(item, q){
+    if(!q) return true;
+    var hay = state.mode === 'sig'
+      ? [item.id, item.dimension, item.description, item.match, item.match_type, item.fix, item.example]
+      : [item.dimension, item.slop, item.instead, item.why, item.example];
+    return hay.join('  ').toLowerCase().indexOf(q) !== -1;
+  }
+  function filtered(){
+    var q = state.q.trim().toLowerCase();
+    return dataset().filter(function(it){
+      if(state.dim !== 'all' && it.dimension !== state.dim) return false;
+      if(state.sev !== 'all' && sevOf(it) !== state.sev) return false;
+      return matchesQuery(it, q);
+    });
+  }
+
+  // ---- card builders ----
+  function sevBadge(sev){
+    var wrap = el('span', 'sev sev--' + sev);
+    wrap.appendChild(el('span', 'sq'));
+    wrap.appendChild(el('span', null, sev));
+    return wrap;
+  }
+  function field(key, value, mono, slopKey){
+    var f = el('div', 'field');
+    var k = el('div', 'fk' + (slopKey ? ' k-slop' : ''), key);
+    var v = el('div', 'fv' + (mono ? ' mono' : ''), value);
+    f.appendChild(k); f.appendChild(v);
+    return f;
+  }
+  function sigCard(s){
+    var card = el('article', 'card');
+    var top = el('div', 'card-top');
+    top.appendChild(sevBadge(s.severity));
+    top.appendChild(el('span', 'dimtag', s.dimension));
+    card.appendChild(top);
+    card.appendChild(el('p', 'cdesc', s.description));
+    card.appendChild(field(s.match_type.toUpperCase() + ' pattern', s.match, true, false));
+    card.appendChild(field('Fix', s.fix, false, false));
+    var note = el('div', 'note');
+    note.textContent = s.id + '  ·  false-positive risk: ' + s.false_positive_risk
+      + (s.false_positive_risk === 'high' ? '  ·  --strict only' : '');
+    card.appendChild(note);
+    return card;
+  }
+  function ruleCard(r){
+    var card = el('article', 'card');
+    var top = el('div', 'card-top');
+    top.appendChild(sevBadge(r.impact));
+    top.appendChild(el('span', 'dimtag', r.dimension + ' · impact'));
+    card.appendChild(top);
+    card.appendChild(field('The slop', r.slop, false, true));
+    card.appendChild(field('Instead', r.instead, false, false));
+    card.appendChild(field('Why', r.why, false, false));
+    card.appendChild(field('Example', r.example, true, false));
+    return card;
+  }
+
+  // ---- render ----
+  function render(){
+    var items = filtered();
+    grid.textContent = '';
+    if(!items.length){
+      var e = el('div', 'empty', 'No ' + (state.mode === 'sig' ? 'signatures' : 'rules') + ' match those filters.');
+      grid.appendChild(e);
+    } else {
+      var frag = document.createDocumentFragment();
+      items.forEach(function(it){
+        frag.appendChild(state.mode === 'sig' ? sigCard(it) : ruleCard(it));
+      });
+      grid.appendChild(frag);
+    }
+    var total = dataset().length;
+    var noun = state.mode === 'sig' ? 'signatures' : 'rules';
+    countEl.innerHTML = 'Showing <b>' + items.length + '</b> of ' + total + ' ' + noun;
+  }
+
+  // ---- events ----
+  function setMode(mode){
+    if(state.mode === mode) return;
+    state.mode = mode; state.dim = 'all'; state.sev = 'all';
+    document.getElementById('mode-sig').setAttribute('aria-pressed', mode === 'sig' ? 'true':'false');
+    document.getElementById('mode-rule').setAttribute('aria-pressed', mode === 'rule' ? 'true':'false');
+    buildDimChips(); buildSevChips(); render();
+  }
+  document.getElementById('mode-sig').addEventListener('click', function(){ setMode('sig'); });
+  document.getElementById('mode-rule').addEventListener('click', function(){ setMode('rule'); });
+
+  document.getElementById('dimChips').addEventListener('click', function(ev){
+    var b = ev.target.closest('.chip'); if(!b) return;
+    state.dim = b.dataset.value; buildDimChips(); render();
+  });
+  document.getElementById('sevChips').addEventListener('click', function(ev){
+    var b = ev.target.closest('.chip'); if(!b) return;
+    state.sev = b.dataset.value; buildSevChips(); render();
+  });
+  qInput.addEventListener('input', function(){ state.q = qInput.value; render(); });
+
+  // ---- severity legend ----
+  (function legend(){
+    var box = document.getElementById('legend');
+    var defs = [
+      {s:'high',   t:'High',   d:'A near-certain tell. Fails the CI gate at exit 2.'},
+      {s:'medium', t:'Medium', d:'A likely tell worth a deliberate look before shipping.'},
+      {s:'low',    t:'Low',    d:'A soft signal. Many are hidden until you pass --strict.'}
+    ];
+    var color = { high:'var(--flag)', medium:'var(--warn)', low:'var(--calm)' };
+    defs.forEach(function(d){
+      var cnt = SIG.filter(function(x){ return x.severity === d.s; }).length;
+      var lg = el('div', 'lg');
+      var t = el('div', 'lgt');
+      var sq = el('span', 'sq');
+      sq.style.background = color[d.s];
+      t.appendChild(sq);
+      t.appendChild(el('span', null, d.t + '  ·  ' + cnt));
+      lg.appendChild(t);
+      lg.appendChild(el('div', 'lgd', d.d));
+      box.appendChild(lg);
+    });
+  })();
+
+  // ---- theme toggle ----
+  (function theme(){
+    var root = document.documentElement;
+    var KEY = 'antislop-theme';
+    try{ var saved = localStorage.getItem(KEY); if(saved) root.setAttribute('data-theme', saved); }
+    catch(e){ /* storage blocked (private mode / sandbox): fall back to the system theme */ }
+    document.getElementById('themeBtn').addEventListener('click', function(){
+      var cur = root.getAttribute('data-theme');
+      if(!cur){ cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try{ localStorage.setItem(KEY, next); }
+      catch(e){ /* storage blocked: theme still applies this session, just not persisted */ }
+    });
+  })();
+
+  // ---- init ----
+  buildDimChips(); buildSevChips(); render();
+})();
+</script>
+</body>
+</html>

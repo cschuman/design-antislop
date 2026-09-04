@@ -1,0 +1,5 @@
+# Maintainer-only regeneration pipeline: depends on a local workflow runtime and
+# personal Reddit credentials, and carries machine-specific paths. Not shipped.
+skills/design-antislop/research/
+.build/
+.DS_Store

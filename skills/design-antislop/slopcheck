@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""
+slopcheck — scan built output for AI-slop signatures.
+
+Part of the design-antislop skill. Reads signatures.json (next to this file by
+default) and flags the generic, machine-made tells across visual / UX / copy /
+code so they can be fixed before shipping.
+
+  slopcheck                     # scan cwd, medium+ severity, low-noise
+  slopcheck src/ index.html     # scan specific paths
+  slopcheck --strict            # include high-false-positive + prose-in-components
+  slopcheck --min-severity high # only the near-certain tells
+  slopcheck --dimension copy    # one dimension
+  slopcheck --json              # machine output
+  slopcheck --list              # show the loaded ruleset and exit
+
+Exit: 0 clean · 1 medium/low findings · 2 at least one high-severity finding.
+Advisory by design — a nonzero exit is a signal for CI, not a hard block here.
+"""
+import argparse, json, os, re, sys
+
+# The ignore marker is honored only when it stands alone as a leading comment,
+# so a file that merely mentions the marker string is still scanned.
+IGNORE_MARKER = re.compile(
+    r"^\s*(?:<!--|#|//|/\*|;|--)\s*slopcheck-ignore-file\b", re.M
+)
+
+def display_path(path):
+    """Relative when the file sits under the cwd, absolute otherwise."""
+    rel = os.path.relpath(path)
+    return path if rel.startswith(os.pardir) else rel
+
+
+SEV = {"low": 0, "medium": 1, "high": 2}
+SEV_NAME = {0: "LOW", 1: "MED", 2: "HIGH"}
+
+DIM_EXT = {
+    "visual": {"css", "scss", "less", "html", "htm", "jsx", "tsx", "vue", "svelte", "astro"},
+    "ux":     {"html", "htm", "jsx", "tsx", "vue", "svelte", "astro"},
+    "copy":   {"md", "mdx", "markdown", "txt", "html", "htm"},
+    "code":   {"js", "jsx", "ts", "tsx", "mjs", "cjs", "py", "go", "rs", "java",
+               "rb", "php", "c", "h", "hpp", "cpp", "cc", "cs", "swift", "kt", "vue", "svelte"},
+}
+COPY_STRICT_EXTRA = {"jsx", "tsx", "vue", "svelte", "astro"}
+IGNORE_DIRS = {"node_modules", ".git", "dist", "build", ".svelte-kit", ".next", ".nuxt",
+               "out", "target", "vendor", ".venv", "venv", "__pycache__", "coverage",
+               ".turbo", ".cache", ".vercel", ".output", ".astro"}
+REGEXY = {"regex", "heuristic"}
+MAX_BYTES = 2_000_000
+MAX_HITS_PER_SIG = 8
+
+
+def load_signatures(path):
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    sigs = data.get("signatures", data) if isinstance(data, dict) else data
+    out = []
+    for s in sigs:
+        mt = (s.get("match_type") or "regex").lower()
+        pat = s.get("match") or ""
+        s = dict(s)
+        if mt in REGEXY:
+            try:
+                s["_re"] = re.compile(pat, re.MULTILINE | re.IGNORECASE)
+                s["_kind"] = "regex"
+            except re.error:
+                s["_kind"] = "literal"
+                s["_lit"] = pat.lower()
+        else:
+            s["_kind"] = "literal"
+            s["_lit"] = pat.lower()
+        out.append(s)
+    return out
+
+
+def find_in(content, sig):
+    hits = []
+    if sig["_kind"] == "regex":
+        for m in sig["_re"].finditer(content):
+            hits.append((m.start(), m.group(0)))
+            if len(hits) >= MAX_HITS_PER_SIG:
+                break
+    else:
+        lit = sig.get("_lit", "")
+        if not lit:
+            return hits
+        low = content.lower()
+        start = 0
+        while True:
+            i = low.find(lit, start)
+            if i < 0:
+                break
+            hits.append((i, content[i:i + len(lit)]))
+            if len(hits) >= MAX_HITS_PER_SIG:
+                break
+            start = i + len(lit)
+    return hits
+
+
+def snippet(text):
+    return re.sub(r"\s+", " ", text).strip()[:90]
+
+
+def iter_files(paths):
+    for p in paths:
+        if os.path.isfile(p):
+            yield p
+        elif os.path.isdir(p):
+            for root, dirs, names in os.walk(p):
+                dirs[:] = [d for d in dirs if d not in IGNORE_DIRS and not d.startswith(".")]
+                for n in names:
+                    yield os.path.join(root, n)
+
+
+def main():
+    here = os.path.dirname(os.path.abspath(__file__))
+    ap = argparse.ArgumentParser(prog="slopcheck", add_help=True,
+                                 description="Scan built output for AI-slop signatures.")
+    ap.add_argument("paths", nargs="*", default=["."], help="files or dirs (default: .)")
+    ap.add_argument("--signatures", default=os.path.join(here, "signatures.json"))
+    ap.add_argument("--min-severity", choices=list(SEV), default="medium")
+    ap.add_argument("--strict", action="store_true",
+                    help="include high-false-positive rules + scan prose inside components")
+    ap.add_argument("--dimension", default="",
+                    help="comma list to restrict: visual,ux,copy,code")
+    ap.add_argument("--json", action="store_true")
+    ap.add_argument("--quiet", action="store_true", help="summary line only")
+    ap.add_argument("--no-color", action="store_true")
+    ap.add_argument("--list", action="store_true", help="print the active ruleset and exit")
+    args = ap.parse_args()
+
+    try:
+        sigs = load_signatures(args.signatures)
+    except FileNotFoundError:
+        print(f"slopcheck: signatures file not found: {args.signatures}", file=sys.stderr)
+        return 3
+
+    min_sev = SEV[args.min_severity]
+    dims_filter = {d.strip() for d in args.dimension.split(",") if d.strip()}
+    active = []
+    for s in sigs:
+        if SEV.get(s.get("severity", "low"), 0) < min_sev:
+            continue
+        if s.get("false_positive_risk") == "high" and not args.strict:
+            continue
+        if dims_filter and s.get("dimension") not in dims_filter:
+            continue
+        active.append(s)
+
+    ext_map = {d: set(v) for d, v in DIM_EXT.items()}
+    if args.strict:
+        ext_map["copy"] |= COPY_STRICT_EXTRA
+
+    use_color = sys.stdout.isatty() and not args.no_color
+    def c(code, txt):
+        return f"\033[{code}m{txt}\033[0m" if use_color else txt
+
+    if args.list:
+        for s in sorted(active, key=lambda x: (x.get("dimension", ""), -SEV.get(x.get("severity", "low"), 0))):
+            print(f"{s.get('dimension','?'):7} {SEV_NAME[SEV.get(s.get('severity','low'),0)]:4} "
+                  f"fp:{(s.get('false_positive_risk','?') or '?')[:3]:3} {s.get('id','?')}")
+        print(f"\n{len(active)} active of {len(sigs)} signatures "
+              f"(min-severity={args.min_severity}, strict={args.strict}).")
+        return 0
+
+    findings = []
+    scanned = 0
+    for path in iter_files(args.paths):
+        ext = path.rsplit(".", 1)[-1].lower() if "." in os.path.basename(path) else ""
+        if ".min." in os.path.basename(path):
+            continue
+        applic = {d for d, exts in ext_map.items() if ext in exts}
+        if not applic:
+            continue
+        try:
+            if os.path.getsize(path) > MAX_BYTES:
+                continue
+            with open(path, "rb") as fh:
+                head = fh.read(4096)
+            if b"\x00" in head:
+                continue
+            with open(path, encoding="utf-8", errors="ignore") as fh:
+                content = fh.read()
+        except OSError:
+            continue
+        if IGNORE_MARKER.search(content[:2048]):
+            continue
+        scanned += 1
+        for s in active:
+            if s.get("dimension") not in applic:
+                continue
+            for pos, txt in find_in(content, s):
+                findings.append({
+                    "file": display_path(path),
+                    "line": content.count("\n", 0, pos) + 1,
+                    "id": s.get("id"),
+                    "dimension": s.get("dimension"),
+                    "severity": s.get("severity", "low"),
+                    "false_positive_risk": s.get("false_positive_risk"),
+                    "match": snippet(txt),
+                    "fix": s.get("fix", ""),
+                })
+
+    highs = sum(1 for f in findings if f["severity"] == "high")
+    meds = sum(1 for f in findings if f["severity"] == "medium")
+    lows = sum(1 for f in findings if f["severity"] == "low")
+
+    if args.json:
+        json.dump({"scanned": scanned,
+                   "summary": {"high": highs, "medium": meds, "low": lows, "total": len(findings)},
+                   "findings": findings}, sys.stdout, indent=2, ensure_ascii=False)
+        print()
+        return 2 if highs else (1 if findings else 0)
+
+    if not findings:
+        if not args.quiet:
+            print(c("32", f"✓ slopcheck: clean ({scanned} files, no {args.min_severity}+ slop)."))
+        return 0
+
+    if not args.quiet:
+        by_file = {}
+        for f in findings:
+            by_file.setdefault(f["file"], []).append(f)
+        rank = {"high": 0, "medium": 1, "low": 2}
+        for fname in sorted(by_file):
+            print("\n" + c("1;4", fname))
+            for f in sorted(by_file[fname], key=lambda x: (rank[x["severity"]], x["line"])):
+                tag = {"high": c("1;31", "HIGH"), "medium": c("33", "MED "), "low": c("2", "LOW ")}[f["severity"]]
+                print(f"  {tag}  {f['id']}  {c('2', 'L'+str(f['line']))}")
+                print(f"        {c('2','“'+f['match']+'”')}")
+                if f["fix"]:
+                    print(f"        {c('36','→ '+snippet(f['fix']))}")
+
+    total = len(findings)
+    bar = c("1;31", f"{highs} high") + ", " + c("33", f"{meds} medium") + ", " + f"{lows} low"
+    noun = "finding" if total == 1 else "findings"
+    fnoun = "file" if scanned == 1 else "files"
+    print("\n" + c("1", f"slopcheck: {total} {noun} ({bar}) across {scanned} {fnoun}."))
+    if not args.strict:
+        print(c("2", "  (medium+ shown; high-false-positive rules hidden — add --strict for the full sweep)"))
+    return 2 if highs else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,16 @@
+{
+  "description": "Runs slopcheck on files Claude writes and surfaces high-severity visual, UX, and copy slop. Advisory, never blocks.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/slopcheck-hook.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

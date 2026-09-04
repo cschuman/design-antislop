@@ -1,0 +1,11 @@
+{
+  "name": "design-antislop",
+  "version": "1.0.0",
+  "description": "A fast deterministic gate against AI slop in visual design, UX, copy, and code. 52 prevention rules plus a zero-dependency scanner with 66 detection signatures.",
+  "author": {
+    "name": "Corey Schuman"
+  },
+  "homepage": "https://github.com/cschuman/design-antislop",
+  "license": "MIT",
+  "keywords": ["design", "code-review", "linting", "writing", "quality"]
+}
