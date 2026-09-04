@@ -13,6 +13,11 @@ code so they can be fixed before shipping.
   slopcheck --dimension copy    # one dimension
   slopcheck --json              # machine output
   slopcheck --list              # show the loaded ruleset and exit
+  slopcheck --include-nonshipped  # also scan tests/examples/fixtures structurally
+
+Structural rules (visual / ux / code) are skipped inside tests, fixtures,
+examples and docs, where they measure the test rather than the product.
+Copy rules still run there.
 
 Exit: 0 clean · 1 medium/low findings · 2 at least one high-severity finding.
 Advisory by design — a nonzero exit is a signal for CI, not a hard block here.
@@ -45,6 +50,17 @@ COPY_STRICT_EXTRA = {"jsx", "tsx", "vue", "svelte", "astro"}
 IGNORE_DIRS = {"node_modules", ".git", "dist", "build", ".svelte-kit", ".next", ".nuxt",
                "out", "target", "vendor", ".venv", "venv", "__pycache__", "coverage",
                ".turbo", ".cache", ".vercel", ".output", ".astro"}
+
+# Directories holding work that is never shipped to anyone: tests, fixtures,
+# examples, docs. The structural dimensions are close to meaningless there —
+# a placeholder in an example file *is* the example, and a fixture is supposed
+# to look wrong. Copy rules are exempt, because a repeated writing tic in a
+# draft is live prose and still worth catching.
+NONSHIPPED_DIRS = {"test", "tests", "__tests__", "spec", "specs",
+                   "fixture", "fixtures", "example", "examples",
+                   "sample", "samples", "demo", "demos", "stories",
+                   "snapshot", "snapshots", "doc", "docs"}
+NONSHIPPED_EXEMPT_DIMS = {"copy"}
 REGEXY = {"regex", "heuristic"}
 MAX_BYTES = 2_000_000
 MAX_HITS_PER_SIG = 8
@@ -101,15 +117,33 @@ def snippet(text):
     return re.sub(r"\s+", " ", text).strip()[:90]
 
 
+def in_nonshipped(path, base):
+    """True when a directory between `base` and the file is a non-shipped surface.
+
+    Only the components below the scanned root count. A project that happens to
+    live under a directory called docs/ or test/ is still scanned normally; it
+    is the structure *inside* what you pointed at that decides.
+    """
+    try:
+        rel = os.path.relpath(path, base) if base else path
+    except ValueError:          # different drives on Windows
+        rel = path
+    parts = os.path.normpath(rel).split(os.sep)[:-1]
+    return any(p.lower() in NONSHIPPED_DIRS for p in parts)
+
+
 def iter_files(paths):
+    """Yield (path, base) so callers can judge a file by its position under base."""
     for p in paths:
         if os.path.isfile(p):
-            yield p
+            # Named directly: judge it by the path the caller wrote, so the hook
+            # still skips a file it was handed from inside examples/.
+            yield p, ""
         elif os.path.isdir(p):
             for root, dirs, names in os.walk(p):
                 dirs[:] = [d for d in dirs if d not in IGNORE_DIRS and not d.startswith(".")]
                 for n in names:
-                    yield os.path.join(root, n)
+                    yield os.path.join(root, n), p
 
 
 def main():
@@ -130,6 +164,8 @@ def main():
     ap.add_argument("--quiet", action="store_true", help="summary line only")
     ap.add_argument("--no-color", action="store_true",
                     help="drop ANSI codes, for logs and CI")
+    ap.add_argument("--include-nonshipped", action="store_true",
+                    help="also apply structural rules inside tests/, examples/, fixtures/, docs/")
     ap.add_argument("--list", action="store_true", help="print the active ruleset and exit")
     args = ap.parse_args()
 
@@ -169,11 +205,13 @@ def main():
 
     findings = []
     scanned = 0
-    for path in iter_files(args.paths):
+    for path, base in iter_files(args.paths):
         ext = path.rsplit(".", 1)[-1].lower() if "." in os.path.basename(path) else ""
         if ".min." in os.path.basename(path):
             continue
         applic = {d for d, exts in ext_map.items() if ext in exts}
+        if not args.include_nonshipped and in_nonshipped(path, base):
+            applic &= NONSHIPPED_EXEMPT_DIMS
         if not applic:
             continue
         try:

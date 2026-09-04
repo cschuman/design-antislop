@@ -30,13 +30,31 @@ REGEXY = {"regex", "heuristic"}
 MATCH_TYPES = REGEXY | {"substring"}
 
 
-def run(*args):
-    """Invoke the CLI the way a user does. Returns (exit_code, stdout)."""
+def run_raw(*args):
+    """Invoke the CLI exactly as given, with no added flags."""
     proc = subprocess.run(
         [sys.executable, SLOPCHECK, "--no-color", *args],
         capture_output=True, text=True,
     )
     return proc.returncode, proc.stdout
+
+
+def scan_raw(*args):
+    """run_raw with --json, returning (exit_code, parsed payload)."""
+    code, out = run_raw("--json", *args)
+    return code, json.loads(out)
+
+
+def run(*args):
+    """Invoke the CLI against the fixtures.
+
+    Adds --include-nonshipped, because tests/fixtures/ is a non-shipped
+    directory by slopcheck's own default and the structural rules would be
+    skipped there. The fixtures ARE the corpus under test, so the suite opts
+    back in. Use run_raw when the default path behaviour is what you mean to
+    test.
+    """
+    return run_raw("--include-nonshipped", *args)
 
 
 def scan(*args):
@@ -330,6 +348,101 @@ class DirectoryTraversal(unittest.TestCase):
             code, payload = scan(tmp)
             self.assertEqual(0, payload["scanned"])
             self.assertEqual(CLEAN, code)
+
+
+class NonShippedPaths(unittest.TestCase):
+    """Structural rules are skipped in tests/examples/fixtures/docs; copy rules are not.
+
+    The audit that motivated this found every hit of the hook's one live frontend
+    rule sitting in an examples/ or tests/ directory - flagging the example for
+    being an example. Copy stays on, because a repeated writing tic in a draft is
+    live prose regardless of which directory holds it.
+    """
+
+    LOREM = "<p>Lorem ipsum dolor sit amet consectetur.</p>"
+    # three em-dashes on one line trips copy-em-dash-density
+    EMDASH = "It is not just fast \u2014 it is elegant \u2014 and it is simple \u2014 truly.\n"
+
+    def _tree(self, tmp, subdir):
+        d = os.path.join(tmp, subdir) if subdir else tmp
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "page.html"), "w", encoding="utf-8") as fh:
+            fh.write(self.LOREM)
+        with open(os.path.join(d, "notes.md"), "w", encoding="utf-8") as fh:
+            fh.write(self.EMDASH)
+        return d
+
+    def test_structural_rules_fire_on_shipped_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._tree(tmp, "src")
+            _, payload = scan_raw(tmp)
+            ids = {f["id"] for f in payload["findings"]}
+            self.assertIn("ux-lorem-ipsum-content", ids)
+
+    def test_structural_rules_are_skipped_in_non_shipped_dirs(self):
+        for subdir in ("tests", "examples", "fixtures", "docs", "__tests__",
+                       "samples", "stories", "spec"):
+            with self.subTest(subdir=subdir):
+                with tempfile.TemporaryDirectory() as tmp:
+                    self._tree(tmp, subdir)
+                    _, payload = scan_raw(tmp)
+                    ids = {f["id"] for f in payload["findings"]}
+                    self.assertNotIn("ux-lorem-ipsum-content", ids)
+
+    def test_copy_rules_still_fire_in_non_shipped_dirs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._tree(tmp, "docs")
+            _, payload = scan_raw(tmp)
+            ids = {f["id"] for f in payload["findings"]}
+            self.assertIn("copy-em-dash-density", ids)
+
+    def test_nested_non_shipped_dir_is_detected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._tree(tmp, os.path.join("packages", "ui", "examples", "deep"))
+            _, payload = scan_raw(tmp)
+            ids = {f["id"] for f in payload["findings"]}
+            self.assertNotIn("ux-lorem-ipsum-content", ids)
+
+    def test_include_nonshipped_restores_structural_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._tree(tmp, "tests")
+            _, payload = scan_raw(tmp, "--include-nonshipped")
+            ids = {f["id"] for f in payload["findings"]}
+            self.assertIn("ux-lorem-ipsum-content", ids)
+
+    def test_a_file_passed_explicitly_still_respects_its_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = self._tree(tmp, "examples")
+            _, payload = scan_raw(os.path.join(d, "page.html"))
+            ids = {f["id"] for f in payload["findings"]}
+            self.assertNotIn("ux-lorem-ipsum-content", ids)
+
+
+class CalibrationIsMeasured(unittest.TestCase):
+    """High severity fails a build, so that tier stays small and defensible."""
+
+    def _sigs(self):
+        with open(SIGNATURES, encoding="utf-8") as fh:
+            return json.load(fh)["signatures"]
+
+    def test_rules_demoted_by_the_audit_stay_demoted(self):
+        # Each was hand-audited in the September 2026 review and measured at or
+        # near zero precision on findings the ignore set does not already remove.
+        expected = {
+            "code-todo-stub-comments": ("low", "high"),
+            "visual-colored-left-border-strip": ("low", "high"),
+            "code-hardcoded-secret": ("medium", "high"),
+            "code-empty-catch-js": ("medium", "low"),
+        }
+        by_id = {s["id"]: s for s in self._sigs()}
+        for rid, (sev, fp) in expected.items():
+            with self.subTest(rule=rid):
+                self.assertEqual(sev, by_id[rid]["severity"])
+                self.assertEqual(fp, by_id[rid]["false_positive_risk"])
+
+    def test_high_severity_tier_stays_small(self):
+        highs = [s for s in self._sigs() if s["severity"] == "high"]
+        self.assertLessEqual(len(highs), 10, "high severity breaks builds; keep the tier earned")
 
 
 if __name__ == "__main__":

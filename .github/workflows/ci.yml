@@ -55,7 +55,7 @@ jobs:
       # broke and every other job would still be green.
       - name: Fixtures must still trip high-severity rules
         run: |
-          if ./skills/design-antislop/slopcheck --no-color --min-severity high tests/fixtures; then
+          if ./skills/design-antislop/slopcheck --no-color --include-nonshipped --min-severity high tests/fixtures; then
             echo "::error::slop fixtures scanned clean; detection has regressed"
             exit 1
           fi

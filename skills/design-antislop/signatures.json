@@ -206,7 +206,7 @@
       "description": "Empty catch block that silently swallows an exception (JS/TS).",
       "match": "catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}",
       "match_type": "regex",
-      "severity": "high",
+      "severity": "medium",
       "false_positive_risk": "low",
       "fix": "Log the error and either rethrow or handle a specific failure mode.",
       "example": "AI: 'try { risky(); } catch (e) {}' Better: 'catch (e) { throw new ValidationError(e.message); }'"
@@ -228,8 +228,8 @@
       "description": "TODO/FIXME/HACK/XXX comments left in code intended to ship, indicating unfinished scaffolding.",
       "match": "(//|#|/\\*)\\s*(TODO|FIXME|HACK|XXX)\\b",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "medium",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Resolve the TODO or file it as a tracked issue and remove from source.",
       "example": "AI: 'if (true) { handleSuccess(); } else { // TODO: handle error }'"
     },
@@ -272,9 +272,9 @@
       "description": "Hardcoded credential-shaped string assigned to a key/secret/password variable.",
       "match": "(api[_-]?key|secret|password|token)\\s*[:=]\\s*['\"][A-Za-z0-9_\\-]{16,}['\"]",
       "match_type": "regex",
-      "severity": "high",
-      "false_positive_risk": "medium",
-      "fix": "Move to environment variables or a secrets manager.",
+      "severity": "medium",
+      "false_positive_risk": "high",
+      "fix": "Move the value to an environment variable. For real secret scanning use gitleaks or trufflehog — they do entropy analysis and provider verification that this pattern cannot.",
       "example": "const apiKey = \"sk_live_1234567890abcdef1234\";"
     },
     {
@@ -404,8 +404,8 @@
       "description": "Single colored 3-4px left border strip on card containers — the single most statistically reliable AI-UI tell. Context-dependent: blockquotes and callouts legitimately use a 3-4px left border, so weigh hits by where the rule sits.",
       "match": "border-l-4\\s+border-(indigo|purple|blue|teal|violet)-[3-6]00|border-left:\\s*[3-4]px solid",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "medium",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Differentiate cards via whitespace, background tint, or elevation instead of a colored left border.",
       "example": "<div class=\"border-l-4 border-indigo-500 rounded-lg p-4\">"
     },

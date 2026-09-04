@@ -70,8 +70,20 @@ in CI targets `skills hooks README.md` for exactly that reason.
 
 `signatures.json` is regenerated from the research pipeline at the quarterly
 refresh, and refreshes are merge-only. A hand-edit that the merge does not
-know about will be lost. If you are proposing a rule, the issue is the durable
-artifact; the JSON edit is not.
+know about will be lost. If you are proposing **a new rule or a new pattern**,
+the issue is the durable artifact; the JSON edit is not.
+
+**Exception, added after the September 2026 audit: calibration changes are not
+merge-only.** Editing an existing rule's `severity` or `false_positive_risk` is
+a normal PR, and the refresh is expected to carry those values forward, because
+they encode measured behaviour rather than research output. The bar is evidence,
+not taste: cite how many findings you opened at `file:line` and how many were
+real. A rule that fails a build should have a number behind it. Four rules were
+re-tiered this way, from a 240-finding hand audit — see the commit that added
+this paragraph.
+
+The distinction is: **what a rule looks for** is research and comes from the
+pipeline. **How loudly it speaks** is calibration and comes from measurement.
 
 #### One gotcha worth knowing before you write a pattern
 

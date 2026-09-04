@@ -69,10 +69,13 @@ least one high-severity finding (usable as a CI gate). A match is a prompt to
 look, not a verdict.
 
 A **hook** runs slopcheck automatically on each file Claude writes. Installed as
-a plugin it is on by default and scoped to `--dimension visual,ux,copy
---min-severity high`, which keeps it quiet on ordinary backend work; the code
-rules stay reachable through `--dimension code`, `--strict`, or a CI step. See
-[hooks/README.md](../../hooks/README.md) to wire it up by hand.
+a plugin it is on by default, scoped to `--dimension visual,ux,copy
+--min-severity high`. That scoping makes it very quiet: no visual signature is
+high severity, so the visual leg never fires, and the hook resolves to four
+rules — one UX and three copy. It is a no-op on `.css`, `.py`, `.rs`, `.ts` and
+`.js`. Treat it as a cheap backstop for the most obvious tells, not as coverage;
+the code rules and everything else stay reachable through `--dimension code`,
+`--strict`, or a CI step. See [hooks/README.md](../../hooks/README.md).
 
 ## Pre-ship gate
 

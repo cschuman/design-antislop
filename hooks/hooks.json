@@ -1,5 +1,5 @@
 {
-  "description": "Runs slopcheck on files Claude writes and surfaces high-severity visual, UX, and copy slop. Advisory, never blocks.",
+  "description": "Runs slopcheck on files Claude writes and surfaces high-severity UX and copy slop (four rules; no visual signature is high severity). Advisory, never blocks.",
   "hooks": {
     "PostToolUse": [
       {

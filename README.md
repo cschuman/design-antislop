@@ -97,6 +97,7 @@ Shows medium-and-up findings and hides high-false-positive rules.
 | `--min-severity low\|medium\|high` | Threshold to report at. Default `medium` |
 | `--dimension visual,ux,copy,code` | Scope the run. Comma-separated |
 | `--json` | Machine-readable output: `scanned`, `findings[]`, `summary` |
+| `--include-nonshipped` | Also apply structural rules inside `tests/`, `examples/`, `fixtures/`, `docs/` |
 | `--list` | Print the active ruleset instead of scanning |
 | `--no-color` | Drop ANSI codes, for logs and CI |
 | `--signatures PATH` | Load a different ruleset file |
@@ -110,9 +111,42 @@ CI gate is just the exit status.
   run: slopcheck --no-color --min-severity high src/
 ```
 
+### What it does not scan
+
+Build output is skipped outright (`node_modules`, `dist`, `target`, and the
+rest). Beyond that, the **visual, UX and code rules are skipped inside
+non-shipped directories** — `tests/`, `__tests__/`, `spec/`, `fixtures/`,
+`examples/`, `samples/`, `demo/`, `stories/`, `snapshots/`, `docs/` — at any
+depth. A placeholder in an example file *is* the example, and a fixture is
+supposed to look wrong; flagging either is flagging the test rather than the
+product.
+
+**Copy rules still run there.** A repeated writing tic in a draft is live prose
+no matter which directory holds it, and drafts are where those tics are most
+worth catching. Pass `--include-nonshipped` to apply everything everywhere.
+
+This default came out of a hand audit of 741 findings across nine projects and
+five public repositories: it removes 62% of total output and drops
+high-severity findings from 68 to 16 without losing a single verified true
+positive. See [the audit note](#calibration) below.
+
 To exclude a file, put `slopcheck-ignore-file` in a leading comment. The
 marker is only honored as a comment at the top of the file, so a file that
 merely mentions the string is still scanned.
+
+### Calibration
+
+Severity is a claim about how often a rule is right, and `high` severity fails
+builds. Four rules were re-tiered in September 2026 after 240 findings were
+opened by hand at `file:line`: `code-todo-stub-comments` and
+`visual-colored-left-border-strip` moved to low/high-FP (0% and 3% measured
+precision), and `code-hardcoded-secret` and `code-empty-catch-js` came off the
+build-breaking tier. For real secret scanning use gitleaks or trufflehog, which
+do entropy analysis and provider verification that a regex cannot.
+
+Rules measured at zero that were *only* wrong about location — the lorem-ipsum
+and placeholder UX rules among them — were left alone, because the non-shipped
+default above fixes them at the root.
 
 ## Install
 
@@ -132,9 +166,16 @@ ln -sfn "$PWD/design-antislop/skills/design-antislop" ~/.claude/skills/design-an
 
 Either way `/design-antislop` becomes available, and `slopcheck` runs standalone
 from any shell with Python 3. Installed as a plugin, a `PostToolUse` hook also
-runs the visual, UX, and copy rules at high severity against every file Claude
-writes, and surfaces anything it finds in the transcript. See
-[hooks/README.md](hooks/README.md) to change or disable that.
+scans every file Claude writes and surfaces what it finds in the transcript.
+
+Be clear about how little that hook does, because the scoping is deliberate. It
+runs `--dimension visual,ux,copy --min-severity high`, and **no visual signature
+carries high severity**, so the visual leg never fires. In practice the hook is
+four rules: one UX (`ux-lorem-ipsum-content`) and three copy. On `.css`, `.py`,
+`.rs`, `.ts` and `.js` it is a no-op by construction. That is the intended
+trade — a hook that speaks on every write is a hook people mute — but it is not
+the safety net "visual, UX and copy protection" would imply. The real coverage
+is `slopcheck` in CI or run by hand. See [hooks/README.md](hooks/README.md).
 
 ## Files
 
