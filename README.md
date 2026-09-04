@@ -63,12 +63,16 @@ from any shell with Python 3.
 
 ## What it scans on itself
 
-`slopcheck` runs clean on this repo, with a caveat worth stating plainly: six
-files are excluded by a leading `slopcheck-ignore-file` comment, because their
-subject matter *is* the slop patterns and they quote every trigger phrase
-verbatim. Those are `playbook.md`, `SIGNATURES.md`, `SKILL.md`, `checklist.md`,
-`explainer.html`, and `hooks/README.md`. Scanned without the marker they produce
-93 findings, all of them quoted rule content.
+`slopcheck` runs clean on this repo, and the caveat matters more than the
+result: six of its files are excluded by a leading `slopcheck-ignore-file`
+comment, because their subject matter *is* the slop patterns and they quote every
+trigger phrase verbatim. Those are `playbook.md`, `SIGNATURES.md`, `SKILL.md`,
+`checklist.md`, `explainer.html`, and `hooks/README.md`. Scanned without the
+marker they produce 93 findings, every one of them quoted rule content.
+
+That leaves a thin scannable surface here, so "clean" on this repo is a weak
+claim and is not offered as evidence of anything. Point it at your own project
+instead.
 
 The marker is honored only when it stands alone as a leading comment, so a file
 that merely mentions the string is still scanned.

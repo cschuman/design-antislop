@@ -214,7 +214,8 @@ def main():
 
     if not findings:
         if not args.quiet:
-            print(c("32", f"✓ slopcheck: clean ({scanned} files, no {args.min_severity}+ slop)."))
+            fnoun = "file" if scanned == 1 else "files"
+            print(c("32", f"✓ slopcheck: clean ({scanned} {fnoun}, no {args.min_severity}+ slop)."))
         return 0
 
     if not args.quiet:
