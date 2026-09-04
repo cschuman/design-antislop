@@ -157,12 +157,13 @@ writes, and surfaces anything it finds in the transcript. See
 python3 tests/run_tests.py
 ```
 
-30 tests, stdlib only, no install step. They cover the exit-code contract, the
+33 tests, stdlib only, no install step. They cover the exit-code contract, the
 JSON shape, dimension and severity filtering, ignore-marker semantics in both
 directions, directory traversal, and a structural pass over the whole ruleset
-that checks for duplicate ids, invalid enum values, and patterns that do not
-compile. That last one is the guard that makes the quarterly ruleset merge
-safe.
+that checks for duplicate ids, invalid enum values, patterns that do not
+compile, and patterns that depend on case the tool never gives them. Those
+last ones are the guard that makes the quarterly ruleset merge safe; writing
+them turned up a shipped rule that was matching ordinary English words.
 
 `tests/fixtures/` holds paired files: `slop_*` must trip specific rule ids,
 `clean_*` must stay silent even under `--strict --min-severity low`. The clean
@@ -174,8 +175,8 @@ fixtures ever come back clean.
 
 ## What it scans on itself
 
-`slopcheck` runs clean on this repo, and the caveats matter more than the
-result.
+`slopcheck` runs clean on this repo, and the caveats matter far more than the
+result. Here is the honest accounting.
 
 Six files are excluded by a leading `slopcheck-ignore-file` comment, because
 their subject matter *is* the slop patterns and they quote every trigger phrase
@@ -183,11 +184,15 @@ verbatim: `playbook.md`, `SIGNATURES.md`, `SKILL.md`, `checklist.md`,
 `explainer.html`, and `hooks/README.md`. Scanned without the marker they
 produce 93 findings, every one of them quoted rule content.
 
-`tests/fixtures/` is deliberate slop and is meant to fail. That is why the CI
-self-scan targets `skills hooks README.md` rather than the repo root.
+Of what remains, `signatures.json` and `hooks.json` are JSON, `slopcheck-hook.sh`
+is shell, and `slopcheck` itself has no extension. None of those map to a
+dimension, so none are scanned. `tests/fixtures/` is deliberate slop and is
+meant to fail.
 
-What is left is a thin scannable surface, so "clean" here is a weak claim and
-is not offered as evidence of anything. Point it at your own project instead.
+That leaves exactly one file: this README. The CI self-scan step is therefore a
+prose gate on this page and nothing more, which is why it runs at
+`--strict --min-severity low`. "Clean" here is close to a tautology and is not
+offered as evidence of anything. Point it at your own project instead.
 
 ## Regenerating the ruleset
 

@@ -73,6 +73,29 @@ refresh, and refreshes are merge-only. A hand-edit that the merge does not
 know about will be lost. If you are proposing a rule, the issue is the durable
 artifact; the JSON edit is not.
 
+#### One gotcha worth knowing before you write a pattern
+
+`slopcheck` compiles every pattern with `re.MULTILINE | re.IGNORECASE`. That is
+right for prose rules and wrong for any rule whose meaning depends on case,
+because the flag silently defeats it. A pattern like
+`[a-z][a-zA-Z]*(API|ID)[A-Z]` looks case-sensitive and is not; under `re.I` it
+matches the word "confidence".
+
+If your rule depends on case, scope it yourself:
+
+```
+\b(?-i:[a-z][a-zA-Z]*(?:HTTP|URL|XML|API|ID|JSON)[A-Z][a-zA-Z]*)\b
+```
+
+The suite checks the whole ruleset for this, so a pattern that relies on case
+it never gets will fail before it ships. `match_type` can also be `heuristic`,
+which the tool compiles exactly like `regex`; the third value, `substring`, is
+a literal match.
+
+Note also that a pattern which fails to compile does not raise. `slopcheck`
+falls back to treating it as a literal string, so a broken regex degrades to a
+rule that quietly never fires. The structural test is what surfaces that.
+
 `tests/run_tests.py` validates the whole ruleset structurally on every run:
 unique ids, valid dimension and severity values, compiling patterns, and ids
 prefixed with their dimension. That suite is what makes the quarterly merge

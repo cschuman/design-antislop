@@ -578,7 +578,7 @@
       "id": "code-inconsistent-abbreviation-casing",
       "dimension": "code",
       "description": "Non-idiomatic camelCase abbreviation handling (e.g. loadHTTPURL instead of loadHttpUrl).",
-      "match": "\\b[a-z][a-zA-Z]*(HTTP|URL|XML|API|ID|JSON)[A-Z][a-zA-Z]*\\b",
+      "match": "\\b(?-i:[a-z][a-zA-Z]*(?:HTTP|URL|XML|API|ID|JSON)[A-Z][a-zA-Z]*)\\b",
       "match_type": "regex",
       "severity": "low",
       "false_positive_risk": "high",

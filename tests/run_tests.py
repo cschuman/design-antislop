@@ -100,6 +100,54 @@ class RulesetIntegrity(unittest.TestCase):
             )
 
 
+class CaseSensitivity(unittest.TestCase):
+    """slopcheck compiles every pattern with re.IGNORECASE.
+
+    That is right for prose rules and wrong for any rule whose meaning depends
+    on case, which is silently defeated by it. A case-dependent pattern has to
+    scope itself with (?-i:...). These tests catch the whole class, not just
+    the one rule that shipped broken.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        with open(SIGNATURES, encoding="utf-8") as fh:
+            cls.sigs = json.load(fh)["signatures"]
+
+    def test_case_dependent_patterns_scope_their_own_flag(self):
+        # Probe with ordinary words. A pattern that matches these only because
+        # of re.I is relying on case it never actually gets.
+        probe = ("confidence candidates validates hides decide bidirectional "
+                 "Akzidenz avoidance identifier rapidly")
+        for s in self.sigs:
+            if s["match_type"] not in REGEXY:
+                continue
+            with self.subTest(rule=s["id"]):
+                insensitive = re.compile(s["match"], re.M | re.I)
+                sensitive = re.compile(s["match"], re.M)
+                extra = {m.group(0) for m in insensitive.finditer(probe)}
+                extra -= {m.group(0) for m in sensitive.finditer(probe)}
+                self.assertEqual(
+                    set(), extra,
+                    f"{s['id']} matches ordinary words only because slopcheck "
+                    f"adds re.IGNORECASE. Scope the pattern with (?-i:...): {sorted(extra)}",
+                )
+
+    def test_the_abbreviation_rule_still_catches_real_offenders(self):
+        rule = next(s for s in self.sigs
+                    if s["id"] == "code-inconsistent-abbreviation-casing")
+        rx = re.compile(rule["match"], re.M | re.I)
+        for name in ("loadHTTPURL", "parseXMLDoc", "getUserIDFromToken",
+                     "fetchAPIKey", "renderJSONBlob"):
+            self.assertTrue(rx.search(name), f"stopped catching {name}")
+
+    def test_prose_like_code_scans_clean(self):
+        code, payload = scan(fixture("clean_prose_code.py"),
+                             "--strict", "--min-severity", "low")
+        self.assertEqual([], payload["findings"])
+        self.assertEqual(CLEAN, code)
+
+
 class SlopIsDetected(unittest.TestCase):
     """Each fixture must trip the signatures it was written to trip."""
 

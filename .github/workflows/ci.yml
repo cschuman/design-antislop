@@ -34,10 +34,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      # tests/fixtures/ is deliberate slop, so the gate covers the shipped
-      # surface only. Everything a user installs is in these three paths.
+      # Everything else in skills/ and hooks/ is either marker-excluded or an
+      # unscanned extension, so this resolves to a prose gate on README.md.
+      # It stays pointed at all three paths so it widens on its own if a
+      # scannable file is ever added. Strictest settings, since it is cheap.
       - name: Scan the shipped surface
-        run: ./skills/design-antislop/slopcheck --no-color skills hooks README.md
+        run: >-
+          ./skills/design-antislop/slopcheck --no-color --strict
+          --min-severity low skills hooks README.md
 
   fixtures-still-dirty:
     name: fixtures still dirty
