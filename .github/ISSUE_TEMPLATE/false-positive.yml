@@ -1,0 +1,51 @@
+name: False positive
+description: A rule fired on work that is not slop
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful report you can file. A rule that fires on
+        careful work is worse than no rule, because it teaches people to
+        ignore the tool.
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      description: The id from the output, e.g. `copy-ai-vocab-cluster`.
+      placeholder: dimension-rule-name
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: What it fired on
+      description: >
+        The smallest excerpt that still trips the rule. Redact freely, as long
+        as it still reproduces.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this is not slop
+      description: >
+        What the text or code is actually doing. This is what tells us whether
+        to tighten the pattern or drop the rule.
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: slopcheck src/
+  - type: dropdown
+    id: how
+    attributes:
+      label: How you were running it
+      options:
+        - CLI directly
+        - The PostToolUse hook
+        - The skill, inside Claude Code
+        - Other

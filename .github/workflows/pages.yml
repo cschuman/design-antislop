@@ -1,0 +1,40 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/design-antislop/explainer.html"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The field guide is staged at deploy time rather than committed to a
+      # docs/ folder, so the file in skills/ stays the single source of truth.
+      - name: Stage the field guide
+        run: |
+          mkdir -p _site
+          cp skills/design-antislop/explainer.html _site/index.html
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

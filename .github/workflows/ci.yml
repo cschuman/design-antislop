@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: tests (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # slopcheck is stdlib-only, so the floor is what ships on older distros.
+        python: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run the fixture suite
+        run: python tests/run_tests.py
+
+  self-scan:
+    name: self-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # tests/fixtures/ is deliberate slop, so the gate covers the shipped
+      # surface only. Everything a user installs is in these three paths.
+      - name: Scan the shipped surface
+        run: ./skills/design-antislop/slopcheck --no-color skills hooks README.md
+
+  fixtures-still-dirty:
+    name: fixtures still dirty
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # Inverted gate: if the slop fixtures ever come back clean, detection
+      # broke and every other job would still be green.
+      - name: Fixtures must still trip high-severity rules
+        run: |
+          if ./skills/design-antislop/slopcheck --no-color --min-severity high tests/fixtures; then
+            echo "::error::slop fixtures scanned clean; detection has regressed"
+            exit 1
+          fi
+          echo "Fixtures still trip high-severity rules, as expected."

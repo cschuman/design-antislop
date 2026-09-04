@@ -115,17 +115,21 @@ def iter_files(paths):
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(prog="slopcheck", add_help=True,
-                                 description="Scan built output for AI-slop signatures.")
+                                 description="Scan built output for AI-slop signatures. Exit codes: 0 clean, 1 findings below high, 2 at least one high-severity finding, 3 signatures file unreadable.")
     ap.add_argument("paths", nargs="*", default=["."], help="files or dirs (default: .)")
-    ap.add_argument("--signatures", default=os.path.join(here, "signatures.json"))
-    ap.add_argument("--min-severity", choices=list(SEV), default="medium")
+    ap.add_argument("--signatures", default=os.path.join(here, "signatures.json"),
+                    help="ruleset file to load (default: the bundled signatures.json)")
+    ap.add_argument("--min-severity", choices=list(SEV), default="medium",
+                    help="lowest severity to report (default: medium)")
     ap.add_argument("--strict", action="store_true",
                     help="include high-false-positive rules + scan prose inside components")
     ap.add_argument("--dimension", default="",
                     help="comma list to restrict: visual,ux,copy,code")
-    ap.add_argument("--json", action="store_true")
+    ap.add_argument("--json", action="store_true",
+                    help="emit scanned/findings/summary as JSON")
     ap.add_argument("--quiet", action="store_true", help="summary line only")
-    ap.add_argument("--no-color", action="store_true")
+    ap.add_argument("--no-color", action="store_true",
+                    help="drop ANSI codes, for logs and CI")
     ap.add_argument("--list", action="store_true", help="print the active ruleset and exit")
     args = ap.parse_args()
 

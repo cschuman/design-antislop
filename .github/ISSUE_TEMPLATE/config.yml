@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/cschuman/design-antislop/security/advisories/new
+    about: Report privately, not as a public issue. See SECURITY.md.
+  - name: What the rules are and why
+    url: https://cschuman.github.io/design-antislop/
+    about: The field guide, with the reasoning behind each dimension.
