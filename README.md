@@ -134,16 +134,25 @@ To exclude a file, put `slopcheck-ignore-file` in a leading comment. The
 marker is only honored as a comment at the top of the file, so a file that
 merely mentions the string is still scanned.
 
+### Links are not prose
+
+Before any `copy` rule runs, Markdown links and bare URLs are blanked out
+(offsets preserved, so line numbers do not move). A link title is usually
+someone else's headline and a slug is nobody's prose; two of the four
+`copy-promotional-verbs` findings in the September 2026 blind audit were a
+promotional verb inside a press-release URL.
+
 ### Rules that need a cluster
 
-Three rules describe a pattern that only means something in bulk, and they are
-evaluated per paragraph rather than per match:
+Four rules describe a pattern that only means something in bulk, and they are
+evaluated per paragraph or per file rather than per match:
 
 | rule | fires when |
 |---|---|
 | `copy-em-dash-density` | em dashes used as sentence asides reach 3 in a paragraph **and** 2 per 100 words. One finding per file, at the densest paragraph. |
 | `copy-vocabulary-tier2` | 2+ **distinct** terms cluster in one paragraph. Inflections of one word (`showcases` / `showcased` / `showcasing`) count once. |
 | `copy-rule-of-three-bold-bullets` | the bold-keyword-colon bullet repeats 3+ times in one list. |
+| `copy-binary-contrast` | the `not X, but Y` / `it is not X. It is Y` frame appears **2+ times in one file**. One finding per file, at the first instance, with the count. A single contrast is a rhetorical choice; the blind audit's graders only called it a tic when it recurred. |
 
 The em dash rule counts *prose* dashes only. Markdown leans on the em dash as a
 structural separator — `- **Label** — definition`, table cells, checklist

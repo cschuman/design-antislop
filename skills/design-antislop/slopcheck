@@ -19,8 +19,8 @@ Structural rules (visual / ux / code) are skipped inside tests, fixtures,
 examples and docs, where they measure the test rather than the product.
 Copy rules still run there.
 
-Three copy rules describe a cluster rather than a single hit and are evaluated
-per paragraph, one finding per paragraph — see WINDOWS below.
+Four copy rules describe a cluster rather than a single hit and are evaluated
+per paragraph or per file, one finding per window — see WINDOWS below.
 
 Exit: 0 clean · 1 medium/low findings · 2 at least one high-severity finding.
 Advisory by design — a nonzero exit is a signal for CI, not a hard block here.
@@ -110,6 +110,17 @@ def mask_code(text):
     return _SCRIPTY.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
 
 
+_LINK = re.compile(r"\[[^\]\n]*\]\([^)\n]*\)|https?://[^\s)>\]\"']+")
+
+def mask_links(text):
+    """Blank Markdown links and bare URLs, preserving offsets and lines.
+
+    A link title is usually someone else's headline and a slug is nobody's
+    prose. Two of the four promotional-verb findings in the September 2026
+    blind audit were the word "empower" inside a press-release URL.
+    """
+    return _LINK.sub(lambda m: " " * len(m.group(0)), text)
+
 def prose_em_dashes(para):
     """Count em dashes used as sentence asides, not as Markdown structure."""
     n = 0
@@ -152,6 +163,10 @@ WINDOWS = {
                              "mask": mask_code},
     "copy-vocabulary-tier2": {"kind": "distinct", "min": 2},
     "copy-rule-of-three-bold-bullets": {"kind": "count", "min": 3},
+    # One "it is not X, it is Y" is a choice; the blind audit's graders only
+    # called it a tic when it recurred in the same document. Two graders split
+    # on 7 of 18 single instances, and every split was a repeat-in-file case.
+    "copy-binary-contrast": {"kind": "file", "min": 2},
 }
 
 
@@ -201,10 +216,23 @@ def load_signatures(path):
 
 def find_in(content, sig):
     """Hits for a signature: one per match, or one per qualifying window."""
+    if sig.get("dimension") == "copy":
+        content = mask_links(content)
     spec = WINDOWS.get(sig.get("id"))
+    if spec and spec["kind"] == "file":
+        return find_in_file(content, sig, spec)
     if spec:
         return find_windowed(content, sig, spec)
     return raw_hits(content, sig, MAX_HITS_PER_SIG)
+
+
+def find_in_file(content, sig, spec):
+    """A rule that is only a tic in repetition: one hit per file, anchored at
+    the first instance, and the reported text says how many there were."""
+    ms = raw_hits(content, sig, 0)
+    if len(ms) < spec["min"]:
+        return []
+    return [(ms[0][0], "%d in file: %s" % (len(ms), ms[0][1]))]
 
 
 def find_windowed(content, sig, spec):

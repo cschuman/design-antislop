@@ -531,5 +531,69 @@ class ClusterWindows(unittest.TestCase):
         self.assertNotIn("copy-rule-of-three-bold-bullets", ids)
 
 
+class LinksAreNotProse(unittest.TestCase):
+    """Copy rules do not read link titles or URL slugs as the author's prose."""
+
+    def _ids(self, body, *flags):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "post.md")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(body)
+            _, payload = scan_raw(*flags, path)
+            return [f["id"] for f in payload["findings"]]
+
+    def test_verb_inside_a_url_slug_is_silent(self):
+        body = ("Sources: [Resistant AI](https://example.com/raises-25m-to-empower-agents) "
+                "and https://example.com/blog/streamline-your-stack for the details.\n")
+        self.assertNotIn("copy-promotional-verbs", self._ids(body))
+
+    def test_verb_inside_a_link_title_is_silent(self):
+        body = "See [Empower your agents with X](https://example.com/x) for the pitch.\n"
+        self.assertNotIn("copy-promotional-verbs", self._ids(body))
+
+    def test_same_verb_in_running_prose_still_fires(self):
+        body = "Our platform will empower your team. See https://example.com/docs.\n"
+        self.assertIn("copy-promotional-verbs", self._ids(body))
+
+    def test_masking_keeps_line_numbers(self):
+        body = ("Intro line.\n\n[a long title](https://example.com/a/very/long/path)\n\n"
+                "Our platform will empower your team.\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "post.md")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(body)
+            _, payload = scan_raw(path)
+            hit = [f for f in payload["findings"] if f["id"] == "copy-promotional-verbs"][0]
+            self.assertEqual(5, hit["line"])
+
+
+class ContrastIsATicOnlyInRepetition(unittest.TestCase):
+    """copy-binary-contrast fires once per file, and only when it recurs."""
+
+    ONE = "This is not a survey. It is a map of the territory.\n"
+
+    def _hits(self, body):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "essay.md")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(body)
+            _, payload = scan_raw(path)
+            return [f for f in payload["findings"] if f["id"] == "copy-binary-contrast"]
+
+    def test_single_contrast_is_a_choice(self):
+        self.assertEqual([], self._hits(self.ONE + "\nPlain paragraph after it.\n"))
+
+    def test_two_in_a_file_fire_once(self):
+        hits = self._hits(self.ONE + "\nMore prose.\n\n" + self.ONE)
+        self.assertEqual(1, len(hits))
+        self.assertEqual(1, hits[0]["line"])
+        self.assertTrue(hits[0]["match"].startswith("2 in file:"), hits[0]["match"])
+
+    def test_five_in_a_file_still_fire_once(self):
+        hits = self._hits(("\n".join([self.ONE] * 5)))
+        self.assertEqual(1, len(hits))
+        self.assertTrue(hits[0]["match"].startswith("5 in file:"), hits[0]["match"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

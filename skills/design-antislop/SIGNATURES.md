@@ -5,7 +5,7 @@
 >
 > The visual, UX and code rules are also skipped inside non-shipped directories (`tests/`, `examples/`, `fixtures/`, `docs/` and friends); copy rules still run there. `--include-nonshipped` turns that off.
 >
-> Three rules marked **&dagger;** below need a *cluster*, not a single match, and are evaluated per paragraph. Their `match` column is the pattern; the grouping is scanner behaviour, documented in the README.
+> Four rules marked **&dagger;** below need a *cluster*, not a single match, and are evaluated per paragraph or per file. All `copy` rules see Markdown links and bare URLs blanked out first. Their `match` column is the pattern; the grouping is scanner behaviour, documented in the README.
 
 Severity = how reliably this signals slop. FP = false-positive risk (high-FP rules are opt-in via `--strict`).
 
@@ -56,7 +56,7 @@ Severity = how reliably this signals slop. FP = false-positive risk (high-FP rul
 | `copy-harness-the-power` | HIGH | low | substring | `harness the power of` |
 | `copy-hedging-preamble` | HIGH | low | regex | `\bit('s\| is) (important\|worth) (to note\|noting\|mentioning) …` |
 | `copy-ai-vocab-cluster` | MED | medi | regex | `\b(delves?\|delving\|tapestry\|leverage[sd]?\|leveraging\|seaml…` |
-| `copy-binary-contrast` | MED | medi | regex | `\b(not (just\|only)\b[^.,;]{1,60}\bbut\b\|it'?s not\b[^.,;]{1,6…` |
+| `copy-binary-contrast` &dagger; | MED | medi | regex | `\b(not (just\|only)\b[^.,;]{1,60}\bbut\b\|it'?s not\b[^.,;]{1,6…` &mdash; 2+ per file |
 | `copy-em-dash-density` &dagger; | MED | medi | regex | 3+ prose asides in a paragraph, 2 per 100 words; one per file |
 | `copy-marketing-cliche-phrases` | MED | low | regex | `\b(unlock (your )?productivity\|next.generation platform\|boost…` |
 | `copy-promotional-verbs` | MED | medi | regex | `\b(unlock(?:ing\|s)? (?:(?:the\|your\|its\|their\|our\|new\|ful…` |
