@@ -59,10 +59,10 @@ graded on gradients.
 
 | Dimension | Signatures | Runs against | The kind of thing it flags |
 |---|---|---|---|
-| **visual** | 17 (0 high, 4 med, 13 low) | css, scss, less, html, jsx, tsx, vue, svelte, astro | The default look of a generated interface: the same two-stop gradient, the accent strip down the left edge of every card, frosted-glass panels, a glow where an elevation shadow belongs, one radius on everything |
-| **ux** | 11 (1 high, 3 med, 7 low) | html, jsx, tsx, vue, svelte, astro | Interfaces that only work when nothing goes wrong: filler text left in place, icon buttons with no accessible name, errors that name no cause and no recovery, lists that render but never handle being empty |
+| **visual** | 17 (0 high, 3 med, 14 low) | css, scss, less, html, jsx, tsx, vue, svelte, astro | The default look of a generated interface: the same two-stop gradient, the accent strip down the left edge of every card, frosted-glass panels, a glow where an elevation shadow belongs, one radius on everything |
+| **ux** | 11 (1 high, 2 med, 8 low) | html, jsx, tsx, vue, svelte, astro | Interfaces that only work when nothing goes wrong: filler text left in place, icon buttons with no accessible name, errors that name no cause and no recovery, lists that render but never handle being empty |
 | **copy** | 20 (3 high, 7 med, 10 low) | md, mdx, txt, html (+ jsx/tsx/vue/svelte under `--strict`) | Prose with the register of a press release and the specificity of none: cliche openers, promotional verbs, hedging preambles, clusters of the abstract vocabulary models reach for, claims attributed to nobody |
-| **code** | 18 (5 high, 7 med, 6 low) | js, ts, jsx, tsx, py, go, rs, java, rb, php, c, cpp, cs, swift, kt, vue, svelte | Code that was written to look finished: swallowed exceptions, credential-shaped literals, comments marking work that was elided, stub bodies that return nothing real |
+| **code** | 18 (3 high, 6 med, 9 low) | js, ts, jsx, tsx, py, go, rs, java, rb, php, c, cpp, cs, swift, kt, vue, svelte | Code that was written to look finished: swallowed exceptions, credential-shaped literals, comments marking work that was elided, stub bodies that return nothing real |
 
 Severity is about consequence, not confidence. `high` means never ship it;
 `medium` means it is almost always wrong; `low` means it is worth a look.

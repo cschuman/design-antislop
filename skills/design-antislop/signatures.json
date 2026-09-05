@@ -250,8 +250,8 @@
       "description": "Dead/always-true conditional branch, a sign of unfinished or scaffolded logic.",
       "match": "if\\s*\\(\\s*true\\s*\\)|if\\s+True\\s*:",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "medium",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Replace the literal with the real condition.",
       "example": "AI: 'if (true) { handleSuccess(); } else { /* TODO */ }' Better: 'if (success) { handleSuccess(); } else { handleError(); }'"
     },
@@ -470,8 +470,8 @@
       "description": "Generic placeholder/filler text used as shipped UI copy instead of task-specific content.",
       "match": "placeholder=[\"'](Enter text( here)?|Click here|Type here|Select an option)[\"']",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "low",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Replace with concrete, task-specific placeholder copy (e.g. 'First name (e.g., Jane)').",
       "example": "<input placeholder=\"Enter text here\" />"
     },
@@ -558,8 +558,8 @@
       "description": "A clickable <div> given an ARIA role instead of native semantic HTML (button/checkbox/link).",
       "match": "<div[^>]*\\brole=[\"'](button|checkbox|link)[\"']",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "low",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Use the native <button>, <input type=checkbox>, or <a> element instead of re-implementing its semantics on a div.",
       "example": "<div role='button' onclick='...'>Click me</div> -> <button onclick='...'>Click me</button>"
     },

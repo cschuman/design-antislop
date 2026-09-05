@@ -428,11 +428,17 @@ class CalibrationIsMeasured(unittest.TestCase):
     def test_rules_demoted_by_the_audit_stay_demoted(self):
         # Each was hand-audited in the September 2026 review and measured at or
         # near zero precision on findings the ignore set does not already remove.
+        # The last three produced no true positive in that audit and, once the
+        # ignore set landed, no findings at all on shipped surfaces; nothing
+        # measured supports a tier that shows up in the default report.
         expected = {
             "code-todo-stub-comments": ("low", "high"),
             "visual-colored-left-border-strip": ("low", "high"),
             "code-hardcoded-secret": ("medium", "high"),
             "code-empty-catch-js": ("medium", "low"),
+            "code-div-role-button": ("low", "high"),
+            "code-dead-branch-if-true": ("low", "high"),
+            "ux-placeholder-as-primary-copy": ("low", "high"),
         }
         by_id = {s["id"]: s for s in self._sigs()}
         for rid, (sev, fp) in expected.items():

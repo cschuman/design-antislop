@@ -80,7 +80,11 @@ they encode measured behaviour rather than research output. The bar is evidence,
 not taste: cite how many findings you opened at `file:line` and how many were
 real. A rule that fails a build should have a number behind it. Four rules were
 re-tiered this way, from a 240-finding hand audit — see the commit that added
-this paragraph.
+this paragraph. Three more went to `low` afterwards for the opposite reason:
+the audit found no true positive for them, and once the ignore set landed they
+produced no findings at all on shipped surfaces, so nothing measured supported
+a tier that appears in the default report. Absence of evidence is not evidence
+for `medium`.
 
 The distinction is: **what a rule looks for** is research and comes from the
 pipeline. **How loudly it speaks** is calibration and comes from measurement.
