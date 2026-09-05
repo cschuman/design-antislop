@@ -166,9 +166,54 @@ precision), and `code-hardcoded-secret` and `code-empty-catch-js` came off the
 build-breaking tier. For real secret scanning use gitleaks or trufflehog, which
 do entropy analysis and provider verification that a regex cannot.
 
-Rules measured at zero that were *only* wrong about location — the lorem-ipsum
-and placeholder UX rules among them — were left alone, because the non-shipped
-default above fixes them at the root.
+`ux-lorem-ipsum-content` measured at zero but was *only* wrong about location,
+so it kept its tier: the non-shipped default above fixes it at the root. Three
+more (`code-div-role-button`, `code-dead-branch-if-true`,
+`ux-placeholder-as-primary-copy`) had no true positive in the audit and produced
+nothing at all on shipped surfaces once the ignore set landed, so they went to
+low. Nothing measured supports a tier that appears in the default report.
+
+### What the default report is actually right about
+
+Measured on v1.0.3 against the audit corpus: 5,062 files across nine personal
+projects and five public repositories, 205 findings at default settings, 15 of
+them high. Every high finding plus 40 drawn at random (seed 20260905) from the
+other 190 went to two independent graders who saw only the excerpt with the
+flagged span marked. No rule name, no severity, no mention of this tool. The
+question was whether a careful editor or code reviewer would ask for the marked
+span to change. 54 of the 55 got two verdicts; the one that got a single verdict
+was judged fine.
+
+| tier | graded | both graders: change it | at least one grader |
+|---|---|---|---|
+| high (fails CI) | 15 of 15 | 14 (93%) | 15 (100%) |
+| medium (default report) | 40 of 190 | 4 (10%) | 11 (28%) |
+| **whole default report, weighted** | | **16%** | **33%** |
+
+By rule, where there were enough findings to say anything:
+
+| rule | graded | both | either | reading |
+|---|---|---|---|---|
+| `code-bare-except-python` | 14 | 13 | 14 | the high tier is almost entirely this rule, and it earns it |
+| `copy-binary-contrast` | 18 | 4 | 11 | graders split 39% of the time: one "not X, it is Y" reads as a choice, three in a document read as a tic |
+| `copy-em-dash-density` | 12 | 0 | 0 | see below |
+| `copy-ai-vocab-cluster` | 6 | 0 | 0 | dense, sourced paragraphs that happen to use the words |
+| `copy-promotional-verbs` | 4 | 0 | 0 | two of the four matched inside a URL |
+
+The em dash result needs reading carefully. The graders were asked a quality
+question and answered it: every flagged paragraph was substantive, specific
+analysis, and nobody asks a writer to strip dashes out of good analysis. The
+rule is a provenance signal, a tell that prose was machine-drafted, and this
+audit could not measure that on a corpus that is largely machine-drafted
+research kept on purpose. What it does establish is that on a corpus like this
+one, the rule produces nothing a reviewer would act on.
+
+Graders agreed with each other 84% of the time overall and 61% on
+`copy-binary-contrast`. The second grader saw the items batched and shuffled
+differently from the first, so disagreement is real subjectivity rather than a
+batch effect. The sample packets contain excerpts from private projects and are
+not in the repo; the method above is enough to reproduce the measurement on any
+corpus.
 
 ## Install
 
