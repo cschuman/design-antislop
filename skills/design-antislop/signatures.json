@@ -96,8 +96,8 @@
       "description": "Vague oversell verbs common in AI-generated marketing copy (unlock [your potential / the full power of], elevate, empower, streamline, harness the power of, supercharge, revolutionize), used without a supporting number or specific claim.",
       "match": "\\b(unlock(?:ing|s)? (?:(?:the|your|its|their|our|new|full|true|hidden|endless|limitless|real) ){0,2}(?:potential|power|value|growth|insights?|possibilit\\w+|opportunit\\w+|creativity|productivity|efficiency|success)|elevate|empower|streamline|harness the power of|supercharge|revolutioniz\\w+)\\b",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "medium",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Replace with a concrete outcome and number.",
       "example": "AI: 'We leverage synergy to transform your workflow and unlock customer potential.' Better: 'Reduced customer churn by 15% through personalized onboarding.'"
     },

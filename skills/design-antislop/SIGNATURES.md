@@ -59,7 +59,7 @@ Severity = how reliably this signals slop. FP = false-positive risk (high-FP rul
 | `copy-binary-contrast` &dagger; | MED | medi | regex | `\b(not (just\|only)\b[^.,;]{1,60}\bbut\b\|it'?s not\b[^.,;]{1,6…` &mdash; 2+ per file |
 | `copy-em-dash-density` &dagger; | LOW | high | regex | 3+ prose asides in a paragraph, 2 per 100 words; one per file |
 | `copy-marketing-cliche-phrases` | MED | low | regex | `\b(unlock (your )?productivity\|next.generation platform\|boost…` |
-| `copy-promotional-verbs` | MED | medi | regex | `\b(unlock(?:ing\|s)? (?:(?:the\|your\|its\|their\|our\|new\|ful…` |
+| `copy-promotional-verbs` | LOW | high | regex | `\b(unlock(?:ing\|s)? (?:(?:the\|your\|its\|their\|our\|new\|ful…` |
 | `copy-stock-transitions` | MED | low | regex | `^(Furthermore\|Moreover\|Additionally\|In addition\|Consequentl…` |
 | `copy-vague-attribution` | MED | medi | regex | `\b(experts (argue\|say\|agree\|believe)\|studies show\|industry…` |
 | `copy-copula-avoidance` | LOW | medi | regex | `\b(serves? as\|acts? as\|functions? as\|stands? as) an?\b` |

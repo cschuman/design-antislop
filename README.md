@@ -61,7 +61,7 @@ graded on gradients.
 |---|---|---|---|
 | **visual** | 17 (0 high, 3 med, 14 low) | css, scss, less, html, jsx, tsx, vue, svelte, astro | The default look of a generated interface: the same two-stop gradient, the accent strip down the left edge of every card, frosted-glass panels, a glow where an elevation shadow belongs, one radius on everything |
 | **ux** | 11 (1 high, 2 med, 8 low) | html, jsx, tsx, vue, svelte, astro | Interfaces that only work when nothing goes wrong: filler text left in place, icon buttons with no accessible name, errors that name no cause and no recovery, lists that render but never handle being empty |
-| **copy** | 20 (3 high, 6 med, 11 low) | md, mdx, txt, html (+ jsx/tsx/vue/svelte under `--strict`) | Prose with the register of a press release and the specificity of none: cliche openers, promotional verbs, hedging preambles, clusters of the abstract vocabulary models reach for, claims attributed to nobody |
+| **copy** | 20 (3 high, 5 med, 12 low) | md, mdx, txt, html (+ jsx/tsx/vue/svelte under `--strict`) | Prose with the register of a press release and the specificity of none: cliche openers, promotional verbs, hedging preambles, clusters of the abstract vocabulary models reach for, claims attributed to nobody |
 | **code** | 18 (3 high, 6 med, 9 low) | js, ts, jsx, tsx, py, go, rs, java, rb, php, c, cpp, cs, swift, kt, vue, svelte | Code that was written to look finished: swallowed exceptions, credential-shaped literals, comments marking work that was elided, stub bodies that return nothing real |
 
 Severity is about consequence, not confidence. `high` means never ship it;
@@ -257,6 +257,12 @@ lenient between v1.0.3 and v1.0.4. The high tier's strict number moved from
 is a grader-variance number, not a change in the tool: at least one grader
 still wanted 14 of 15 changed in both rounds. Pairs of graders agreed with
 each other 74% of the time in this round.
+
+`copy-promotional-verbs` went to `low` with `false_positive_risk: high` in
+v1.0.5 on the strength of that 0 of 9: the URL matches were gone after link
+masking and nothing that remained was a finding either grader wanted changed.
+It runs under `--strict`. Without it the v1.0.4 default report on the same
+corpus is 52 findings.
 
 In the v1.0.3 round graders agreed with each other 84% of the time overall
 and 61% on `copy-binary-contrast`. The second grader saw the items batched and shuffled

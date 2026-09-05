@@ -442,6 +442,9 @@ class CalibrationIsMeasured(unittest.TestCase):
             # Failed two blind measurements: 0 of 12 under a reviewer rubric,
             # and no lift over control paragraphs under a provenance rubric.
             "copy-em-dash-density": ("low", "high"),
+            # 0 of 9 true positives in the v1.0.4 census, after link masking
+            # had already removed the URL matches.
+            "copy-promotional-verbs": ("low", "high"),
         }
         by_id = {s["id"]: s for s in self._sigs()}
         for rid, (sev, fp) in expected.items():
@@ -549,15 +552,15 @@ class LinksAreNotProse(unittest.TestCase):
     def test_verb_inside_a_url_slug_is_silent(self):
         body = ("Sources: [Resistant AI](https://example.com/raises-25m-to-empower-agents) "
                 "and https://example.com/blog/streamline-your-stack for the details.\n")
-        self.assertNotIn("copy-promotional-verbs", self._ids(body))
+        self.assertNotIn("copy-promotional-verbs", self._ids(body, "--strict", "--min-severity", "low"))
 
     def test_verb_inside_a_link_title_is_silent(self):
         body = "See [Empower your agents with X](https://example.com/x) for the pitch.\n"
-        self.assertNotIn("copy-promotional-verbs", self._ids(body))
+        self.assertNotIn("copy-promotional-verbs", self._ids(body, "--strict", "--min-severity", "low"))
 
     def test_same_verb_in_running_prose_still_fires(self):
         body = "Our platform will empower your team. See https://example.com/docs.\n"
-        self.assertIn("copy-promotional-verbs", self._ids(body))
+        self.assertIn("copy-promotional-verbs", self._ids(body, "--strict", "--min-severity", "low"))
 
     def test_masking_keeps_line_numbers(self):
         body = ("Intro line.\n\n[a long title](https://example.com/a/very/long/path)\n\n"
@@ -566,7 +569,7 @@ class LinksAreNotProse(unittest.TestCase):
             path = os.path.join(tmp, "post.md")
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(body)
-            _, payload = scan_raw(path)
+            _, payload = scan_raw("--strict", "--min-severity", "low", path)
             hit = [f for f in payload["findings"] if f["id"] == "copy-promotional-verbs"][0]
             self.assertEqual(5, hit["line"])
 
