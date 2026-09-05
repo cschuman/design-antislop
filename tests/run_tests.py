@@ -445,5 +445,85 @@ class CalibrationIsMeasured(unittest.TestCase):
         self.assertLessEqual(len(highs), 10, "high severity breaks builds; keep the tier earned")
 
 
+class ClusterWindows(unittest.TestCase):
+    """Three rules describe a cluster; the scanner evaluates them per paragraph."""
+
+    def _scan(self, body, name="notes.md", *flags):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, name)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(body)
+            _, payload = scan_raw(*flags, path)
+            return [f["id"] for f in payload["findings"]]
+
+    # --- copy-em-dash-density -------------------------------------------------
+    def test_wrapped_prose_now_fires(self):
+        """The bug the audit found: 3 dashes across wrapped lines were silent."""
+        body = ("The system \u2014 built on modern architecture \u2014 provides\n"
+                "seamless integration \u2014 and it scales \u2014 every time.\n")
+        self.assertIn("copy-em-dash-density", self._scan(body))
+
+    def test_single_line_packing_still_fires(self):
+        body = "It is not just fast \u2014 it is elegant \u2014 and it is simple \u2014 truly.\n"
+        self.assertIn("copy-em-dash-density", self._scan(body))
+
+    def test_one_dash_per_paragraph_is_clean(self):
+        body = ("A paragraph with a single aside \u2014 just the one \u2014 padded out with "
+                "enough additional ordinary words that it reads as perfectly normal prose.\n\n"
+                "Another paragraph \u2014 also with one \u2014 and likewise padded with a "
+                "good number of further words so the density stays where it belongs.\n")
+        self.assertNotIn("copy-em-dash-density", self._scan(body))
+
+    def test_markdown_label_separators_are_not_prose(self):
+        """"- **Label** - definition" is formatting, and it is everywhere."""
+        body = ("- **Speed** \u2014 faster processing across the board\n"
+                "- **Scale** \u2014 bigger capacity for larger teams\n"
+                "- **Security** \u2014 better protection everywhere\n")
+        self.assertNotIn("copy-em-dash-density", self._scan(body))
+
+    def test_table_cells_are_not_prose(self):
+        body = ("| Vendor | Criticality |\n|---|---|\n"
+                "| Anthropic | High \u2014 no extraction without it |\n"
+                "| Sigstore | High \u2014 core to the compliance story |\n"
+                "| Stripe | Low \u2014 easily replaced by any processor |\n")
+        self.assertNotIn("copy-em-dash-density", self._scan(body))
+
+    def test_at_most_one_finding_per_file(self):
+        para = "It is not just fast \u2014 it is elegant \u2014 and it is simple \u2014 truly.\n"
+        ids = self._scan("\n".join(para for _ in range(6)).replace("\n", "\n\n"))
+        self.assertEqual(1, ids.count("copy-em-dash-density"))
+
+    # --- copy-vocabulary-tier2 ------------------------------------------------
+    def test_two_distinct_terms_cluster(self):
+        body = ("Our cutting-edge platform empowers you to navigate the "
+                "ever-changing landscape of this multifaceted ecosystem.\n")
+        ids = self._scan(body, "notes.md", "--strict", "--min-severity", "low")
+        self.assertIn("copy-vocabulary-tier2", ids)
+
+    def test_lone_term_is_not_a_cluster(self):
+        body = "We rebuilt the deployment landscape this quarter and it went fine.\n"
+        ids = self._scan(body, "notes.md", "--strict", "--min-severity", "low")
+        self.assertNotIn("copy-vocabulary-tier2", ids)
+
+    def test_inflections_of_one_term_are_one_term(self):
+        """showcases / showcased / showcasing is a single word, not a cluster."""
+        body = "The tool showcases what it showcased and is showcasing again today.\n"
+        ids = self._scan(body, "notes.md", "--strict", "--min-severity", "low")
+        self.assertNotIn("copy-vocabulary-tier2", ids)
+
+    # --- copy-rule-of-three-bold-bullets --------------------------------------
+    def test_three_bold_bullets_fire(self):
+        body = ("- **Speed**: Faster processing.\n"
+                "- **Scale**: Bigger capacity.\n"
+                "- **Security**: Better protection.\n")
+        ids = self._scan(body, "notes.md", "--strict", "--min-severity", "low")
+        self.assertIn("copy-rule-of-three-bold-bullets", ids)
+
+    def test_two_bold_bullets_do_not(self):
+        body = "- **Speed**: Faster processing.\n- **Scale**: Bigger capacity.\n"
+        ids = self._scan(body, "notes.md", "--strict", "--min-severity", "low")
+        self.assertNotIn("copy-rule-of-three-bold-bullets", ids)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

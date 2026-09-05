@@ -4,6 +4,8 @@
 > The 66 machine-detectable tells `slopcheck` scans for. By default it shows **medium+ severity** and hides **high-false-positive** rules; `--strict` includes everything. Regex/heuristic rules match with IGNORECASE + MULTILINE.
 >
 > The visual, UX and code rules are also skipped inside non-shipped directories (`tests/`, `examples/`, `fixtures/`, `docs/` and friends); copy rules still run there. `--include-nonshipped` turns that off.
+>
+> Three rules marked **&dagger;** below need a *cluster*, not a single match, and are evaluated per paragraph. Their `match` column is the pattern; the grouping is scanner behaviour, documented in the README.
 
 Severity = how reliably this signals slop. FP = false-positive risk (high-FP rules are opt-in via `--strict`).
 
@@ -55,7 +57,7 @@ Severity = how reliably this signals slop. FP = false-positive risk (high-FP rul
 | `copy-hedging-preamble` | HIGH | low | regex | `\bit('s\| is) (important\|worth) (to note\|noting\|mentioning) …` |
 | `copy-ai-vocab-cluster` | MED | medi | regex | `\b(delves?\|delving\|tapestry\|leverage[sd]?\|leveraging\|seaml…` |
 | `copy-binary-contrast` | MED | medi | regex | `\b(not (just\|only)\b[^.,;]{1,60}\bbut\b\|it'?s not\b[^.,;]{1,6…` |
-| `copy-em-dash-density` | MED | medi | regex | `(—.*){3,}` |
+| `copy-em-dash-density` &dagger; | MED | medi | regex | 3+ prose asides in a paragraph, 2 per 100 words; one per file |
 | `copy-marketing-cliche-phrases` | MED | low | regex | `\b(unlock (your )?productivity\|next.generation platform\|boost…` |
 | `copy-promotional-verbs` | MED | medi | regex | `\b(unlock(?:ing\|s)? (?:(?:the\|your\|its\|their\|our\|new\|ful…` |
 | `copy-stock-transitions` | MED | low | regex | `^(Furthermore\|Moreover\|Additionally\|In addition\|Consequentl…` |
@@ -67,9 +69,9 @@ Severity = how reliably this signals slop. FP = false-positive risk (high-FP rul
 | `copy-in-conclusion-crutch` | LOW | low | regex | `^(In conclusion\|In summary\|To summarize\|To conclude),` |
 | `copy-listicle-title` | LOW | medi | regex | `^\s*\d+\s+(reasons?\|ways?\|tips?\|things?\|secrets?\|steps?)\s…` |
 | `copy-meta-commentary` | LOW | low | regex | `\b(as mentioned above\|as (we\|previously) discussed\|as noted …` |
-| `copy-rule-of-three-bold-bullets` | LOW | high | regex | `^[-*]\s*\*\*[^*]{2,30}\*\*:\s` |
+| `copy-rule-of-three-bold-bullets` &dagger; | LOW | high | regex | `^[-*]\s*\*\*[^*]{2,30}\*\*:\s` &mdash; 3+ per list |
 | `copy-throat-clearing-openers` | LOW | medi | regex | `^(Here'?s the thing:\|At its core,\|It'?s worth noting:\|In ess…` |
-| `copy-vocabulary-tier2` | LOW | high | regex | `\b(cutting-edge\|empower(s\|ed\|ing)?\|streamline[sd]?\|innovat…` |
+| `copy-vocabulary-tier2` &dagger; | LOW | high | regex | `\b(cutting-edge\|empower(s\|ed\|ing)?\|streamline[sd]?\|innovat…` &mdash; 2+ distinct per paragraph |
 
 ## Code output  <sub>(18)</sub>
 

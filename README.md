@@ -134,6 +134,28 @@ To exclude a file, put `slopcheck-ignore-file` in a leading comment. The
 marker is only honored as a comment at the top of the file, so a file that
 merely mentions the string is still scanned.
 
+### Rules that need a cluster
+
+Three rules describe a pattern that only means something in bulk, and they are
+evaluated per paragraph rather than per match:
+
+| rule | fires when |
+|---|---|
+| `copy-em-dash-density` | em dashes used as sentence asides reach 3 in a paragraph **and** 2 per 100 words. One finding per file, at the densest paragraph. |
+| `copy-vocabulary-tier2` | 2+ **distinct** terms cluster in one paragraph. Inflections of one word (`showcases` / `showcased` / `showcasing`) count once. |
+| `copy-rule-of-three-bold-bullets` | the bold-keyword-colon bullet repeats 3+ times in one list. |
+
+The em dash rule counts *prose* dashes only. Markdown leans on the em dash as a
+structural separator — `- **Label** — definition`, table cells, checklist
+`claim — verdict`, link titles someone else wrote, design-token comments — and
+that is ordinary formatting, not an authorship tic. Counting every dash flags it
+by the hundred.
+
+These windows live in `slopcheck` rather than in `signatures.json`, because that
+file is regenerated from the research pipeline and a regeneration that dropped a
+window would quietly turn a cluster rule back into a single-hit rule. A rule's
+pattern is research; how its hits are grouped is scanner behaviour.
+
 ### Calibration
 
 Severity is a claim about how often a rule is right, and `high` severity fails

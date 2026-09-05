@@ -19,6 +19,9 @@ Structural rules (visual / ux / code) are skipped inside tests, fixtures,
 examples and docs, where they measure the test rather than the product.
 Copy rules still run there.
 
+Three copy rules describe a cluster rather than a single hit and are evaluated
+per paragraph, one finding per paragraph — see WINDOWS below.
+
 Exit: 0 clean · 1 medium/low findings · 2 at least one high-severity finding.
 Advisory by design — a nonzero exit is a signal for CI, not a hard block here.
 """
@@ -65,6 +68,113 @@ REGEXY = {"regex", "heuristic"}
 MAX_BYTES = 2_000_000
 MAX_HITS_PER_SIG = 8
 
+# Three rules describe a cluster, not a single hit: "more than 2 em dashes
+# within a single paragraph", "2+ distinct terms cluster in the same paragraph",
+# "repeats 3+ times consecutively in the same list". None of that logic existed —
+# each fired on the first lone match, and copy-em-dash-density counted per LINE,
+# so nine em dashes one-per-line stayed silent while three on one line tripped it.
+#
+# The windows live here rather than in signatures.json on purpose. That file is
+# regenerated from the research pipeline, and a regeneration that dropped a
+# window would quietly turn a cluster rule back into a single-hit rule — exactly
+# the bug this fixes. A rule's pattern is research; how its hits are grouped is
+# scanner behaviour.
+PARA_SPLIT = re.compile(r"\n[ \t]*\n")
+WORD = re.compile(r"[A-Za-z0-9'\u2019-]+")
+_SUFFIX = ("ing", "ed", "es", "s", "d")
+
+# Em dashes, prose only. Markdown leans on the em dash as a *structural*
+# separator: "- **Label** - definition", table cells, checklist "claim - verdict",
+# link titles someone else wrote. That is ordinary formatting, not the authorship
+# tic the rule is after, and counting every dash flags it by the hundred. On a
+# 14-file hand sample, counting only mid-sentence asides moved this rule from the
+# panel's measured 37.5% to 7 of 14, with volume down from 145 findings to 46.
+_SKIP_LINE = re.compile(r"^\s*(?:\||#{1,6}\s|>)")
+_MD_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
+_CODE_SPAN = re.compile(r"`[^`]*`")
+_HTML_TAG = re.compile(r"<[^>]+>")
+_LEAD = re.compile(r"^\s*(?:([-*+]|\d+[.)]|\(\d+\))\s+)?(.*?)\u2014")
+_SENT_END = re.compile(r"[.!?][\"')\]]?(?:\s|$)")
+_LABEL_END = ("**", "`", ")", "_", "*", '"', "\u201d", "\u2019", "'", ":")
+
+
+_SCRIPTY = re.compile(r"<(script|style)\b[^>]*>.*?</\1>|<!--.*?-->", re.S | re.I)
+
+
+def mask_code(text):
+    """Blank out script, style and comment bodies, preserving offsets and lines.
+
+    None of it is prose anyone reads, and all of it is full of em dashes used as
+    separators: JS placeholder strings, design-token comment blocks.
+    """
+    return _SCRIPTY.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
+
+
+def prose_em_dashes(para):
+    """Count em dashes used as sentence asides, not as Markdown structure."""
+    n = 0
+    fenced = False
+    for raw in para.split("\n"):
+        if raw.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            continue
+        if fenced or _SKIP_LINE.match(raw):
+            continue
+        tagged = _HTML_TAG.search(raw) is not None
+        line = _HTML_TAG.sub(" ", _CODE_SPAN.sub(" ", _MD_LINK.sub(" ", raw)))
+        d = line.count("\u2014")
+        if not d:
+            continue
+        # A short run of text inside markup is a UI label, not a sentence:
+        # "<option>Site 04 - Kilimanjaro Ridge</option>".
+        if tagged and len(WORD.findall(line)) < 12:
+            continue
+        m = _LEAD.match(line)
+        if m:
+            bullet, lead = m.group(1), m.group(2).rstrip()
+            # Only a list item or an emphasis-terminated label reads as structure.
+            # A bare prose line keeps its dash, so "It is not just fast - it is
+            # elegant" still counts as the aside it is.
+            if (bullet or lead.endswith(_LABEL_END)) and not _SENT_END.search(lead):
+                d -= 1
+        n += d
+    return n
+
+
+WINDOWS = {
+    # Density, not a raw count: hard-wrapped prose and one-line paragraphs must
+    # score the same. 2.0 per 100 words is the 25th percentile of the paragraphs
+    # the per-line version was already firing on, so this reproduces the rule's
+    # own operating point instead of inventing a threshold. One finding per file,
+    # because the fix is "rewrite your dashes", done once per document.
+    "copy-em-dash-density": {"kind": "density", "count": prose_em_dashes,
+                             "min_count": 3, "per_100_words": 2.0, "max_per_file": 1,
+                             "mask": mask_code},
+    "copy-vocabulary-tier2": {"kind": "distinct", "min": 2},
+    "copy-rule-of-three-bold-bullets": {"kind": "count", "min": 3},
+}
+
+
+def paragraphs(content):
+    """Yield (offset, text) for each blank-line-delimited block."""
+    pos = 0
+    for m in PARA_SPLIT.finditer(content):
+        if m.start() > pos:
+            yield pos, content[pos:m.start()]
+        pos = m.end()
+    if pos < len(content):
+        yield pos, content[pos:]
+
+
+def stem(word):
+    """Fold inflections so empower/empowers/empowering count as one term."""
+    w = word.lower()
+    for suf in _SUFFIX:
+        if w.endswith(suf) and len(w) - len(suf) >= 4:
+            w = w[:-len(suf)]
+            break
+    return w.rstrip("e") or w
+
 
 def load_signatures(path):
     with open(path, encoding="utf-8") as fh:
@@ -90,11 +200,56 @@ def load_signatures(path):
 
 
 def find_in(content, sig):
+    """Hits for a signature: one per match, or one per qualifying window."""
+    spec = WINDOWS.get(sig.get("id"))
+    if spec:
+        return find_windowed(content, sig, spec)
+    return raw_hits(content, sig, MAX_HITS_PER_SIG)
+
+
+def find_windowed(content, sig, spec):
+    """Evaluate a cluster rule per paragraph, at most one hit per paragraph.
+
+    The hit is anchored at the first match in the window so the reported line
+    points at the start of the cluster, and the reported text is the paragraph
+    itself, which is what a human needs to judge whether the cluster is real.
+    """
+    hits, ranked = [], []
+    mask = spec.get("mask")
+    for base, para in paragraphs(mask(content) if mask else content):
+        if spec["kind"] == "density":
+            n = spec["count"](para)
+            if n < spec["min_count"]:
+                continue
+            words = len(WORD.findall(para))
+            rate = n * 100.0 / words if words else 0.0
+            if words and rate < spec["per_100_words"]:
+                continue
+            dash = para.find("\u2014")
+            ranked.append((rate, base + (dash if dash >= 0 else 0), para))
+        else:
+            ms = raw_hits(para, sig, 0)
+            if not ms:
+                continue
+            n = len({stem(t) for _, t in ms}) if spec["kind"] == "distinct" else len(ms)
+            if n < spec["min"]:
+                continue
+            hits.append((base + ms[0][0], para))
+        if len(hits) >= MAX_HITS_PER_SIG:
+            break
+    if ranked:                      # densest paragraphs first, capped per file
+        ranked.sort(key=lambda r: -r[0])
+        hits = [(pos, para) for _, pos, para in ranked[:spec.get("max_per_file", MAX_HITS_PER_SIG)]]
+    return hits
+
+
+def raw_hits(content, sig, limit):
+    """Every match of the signature. limit=0 means no cap."""
     hits = []
     if sig["_kind"] == "regex":
         for m in sig["_re"].finditer(content):
             hits.append((m.start(), m.group(0)))
-            if len(hits) >= MAX_HITS_PER_SIG:
+            if limit and len(hits) >= limit:
                 break
     else:
         lit = sig.get("_lit", "")
@@ -107,7 +262,7 @@ def find_in(content, sig):
             if i < 0:
                 break
             hits.append((i, content[i:i + len(lit)]))
-            if len(hits) >= MAX_HITS_PER_SIG:
+            if limit and len(hits) >= limit:
                 break
             start = i + len(lit)
     return hits
