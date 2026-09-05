@@ -392,7 +392,7 @@ class NonShippedPaths(unittest.TestCase):
     def test_copy_rules_still_fire_in_non_shipped_dirs(self):
         with tempfile.TemporaryDirectory() as tmp:
             self._tree(tmp, "docs")
-            _, payload = scan_raw(tmp)
+            _, payload = scan_raw("--strict", "--min-severity", "low", tmp)
             ids = {f["id"] for f in payload["findings"]}
             self.assertIn("copy-em-dash-density", ids)
 
@@ -439,6 +439,9 @@ class CalibrationIsMeasured(unittest.TestCase):
             "code-div-role-button": ("low", "high"),
             "code-dead-branch-if-true": ("low", "high"),
             "ux-placeholder-as-primary-copy": ("low", "high"),
+            # Failed two blind measurements: 0 of 12 under a reviewer rubric,
+            # and no lift over control paragraphs under a provenance rubric.
+            "copy-em-dash-density": ("low", "high"),
         }
         by_id = {s["id"]: s for s in self._sigs()}
         for rid, (sev, fp) in expected.items():
@@ -467,36 +470,37 @@ class ClusterWindows(unittest.TestCase):
         """The bug the audit found: 3 dashes across wrapped lines were silent."""
         body = ("The system \u2014 built on modern architecture \u2014 provides\n"
                 "seamless integration \u2014 and it scales \u2014 every time.\n")
-        self.assertIn("copy-em-dash-density", self._scan(body))
+        self.assertIn("copy-em-dash-density", self._scan(body, "notes.md", "--strict", "--min-severity", "low"))
 
     def test_single_line_packing_still_fires(self):
         body = "It is not just fast \u2014 it is elegant \u2014 and it is simple \u2014 truly.\n"
-        self.assertIn("copy-em-dash-density", self._scan(body))
+        self.assertIn("copy-em-dash-density", self._scan(body, "notes.md", "--strict", "--min-severity", "low"))
 
     def test_one_dash_per_paragraph_is_clean(self):
         body = ("A paragraph with a single aside \u2014 just the one \u2014 padded out with "
                 "enough additional ordinary words that it reads as perfectly normal prose.\n\n"
                 "Another paragraph \u2014 also with one \u2014 and likewise padded with a "
                 "good number of further words so the density stays where it belongs.\n")
-        self.assertNotIn("copy-em-dash-density", self._scan(body))
+        self.assertNotIn("copy-em-dash-density", self._scan(body, "notes.md", "--strict", "--min-severity", "low"))
 
     def test_markdown_label_separators_are_not_prose(self):
         """"- **Label** - definition" is formatting, and it is everywhere."""
         body = ("- **Speed** \u2014 faster processing across the board\n"
                 "- **Scale** \u2014 bigger capacity for larger teams\n"
                 "- **Security** \u2014 better protection everywhere\n")
-        self.assertNotIn("copy-em-dash-density", self._scan(body))
+        self.assertNotIn("copy-em-dash-density", self._scan(body, "notes.md", "--strict", "--min-severity", "low"))
 
     def test_table_cells_are_not_prose(self):
         body = ("| Vendor | Criticality |\n|---|---|\n"
                 "| Anthropic | High \u2014 no extraction without it |\n"
                 "| Sigstore | High \u2014 core to the compliance story |\n"
                 "| Stripe | Low \u2014 easily replaced by any processor |\n")
-        self.assertNotIn("copy-em-dash-density", self._scan(body))
+        self.assertNotIn("copy-em-dash-density", self._scan(body, "notes.md", "--strict", "--min-severity", "low"))
 
     def test_at_most_one_finding_per_file(self):
         para = "It is not just fast \u2014 it is elegant \u2014 and it is simple \u2014 truly.\n"
-        ids = self._scan("\n".join(para for _ in range(6)).replace("\n", "\n\n"))
+        ids = self._scan("\n".join(para for _ in range(6)).replace("\n", "\n\n"),
+                         "notes.md", "--strict", "--min-severity", "low")
         self.assertEqual(1, ids.count("copy-em-dash-density"))
 
     # --- copy-vocabulary-tier2 ------------------------------------------------

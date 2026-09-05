@@ -61,7 +61,7 @@ graded on gradients.
 |---|---|---|---|
 | **visual** | 17 (0 high, 3 med, 14 low) | css, scss, less, html, jsx, tsx, vue, svelte, astro | The default look of a generated interface: the same two-stop gradient, the accent strip down the left edge of every card, frosted-glass panels, a glow where an elevation shadow belongs, one radius on everything |
 | **ux** | 11 (1 high, 2 med, 8 low) | html, jsx, tsx, vue, svelte, astro | Interfaces that only work when nothing goes wrong: filler text left in place, icon buttons with no accessible name, errors that name no cause and no recovery, lists that render but never handle being empty |
-| **copy** | 20 (3 high, 7 med, 10 low) | md, mdx, txt, html (+ jsx/tsx/vue/svelte under `--strict`) | Prose with the register of a press release and the specificity of none: cliche openers, promotional verbs, hedging preambles, clusters of the abstract vocabulary models reach for, claims attributed to nobody |
+| **copy** | 20 (3 high, 6 med, 11 low) | md, mdx, txt, html (+ jsx/tsx/vue/svelte under `--strict`) | Prose with the register of a press release and the specificity of none: cliche openers, promotional verbs, hedging preambles, clusters of the abstract vocabulary models reach for, claims attributed to nobody |
 | **code** | 18 (3 high, 6 med, 9 low) | js, ts, jsx, tsx, py, go, rs, java, rb, php, c, cpp, cs, swift, kt, vue, svelte | Code that was written to look finished: swallowed exceptions, credential-shaped literals, comments marking work that was elided, stub bodies that return nothing real |
 
 Severity is about consequence, not confidence. `high` means never ship it;
@@ -149,7 +149,7 @@ evaluated per paragraph or per file rather than per match:
 
 | rule | fires when |
 |---|---|
-| `copy-em-dash-density` | em dashes used as sentence asides reach 3 in a paragraph **and** 2 per 100 words. One finding per file, at the densest paragraph. |
+| `copy-em-dash-density` | em dashes used as sentence asides reach 3 in a paragraph **and** 2 per 100 words. One finding per file, at the densest paragraph. `low` tier since v1.0.4, `--strict` only. |
 | `copy-vocabulary-tier2` | 2+ **distinct** terms cluster in one paragraph. Inflections of one word (`showcases` / `showcased` / `showcasing`) count once. |
 | `copy-rule-of-three-bold-bullets` | the bold-keyword-colon bullet repeats 3+ times in one list. |
 | `copy-binary-contrast` | the `not X, but Y` / `it is not X. It is Y` frame appears **2+ times in one file**. One finding per file, at the first instance, with the count. A single contrast is a rhetorical choice; the blind audit's graders only called it a tic when it recurred. |
@@ -209,13 +209,31 @@ By rule, where there were enough findings to say anything:
 | `copy-ai-vocab-cluster` | 6 | 0 | 0 | dense, sourced paragraphs that happen to use the words |
 | `copy-promotional-verbs` | 4 | 0 | 0 | two of the four matched inside a URL |
 
-The em dash result needs reading carefully. The graders were asked a quality
-question and answered it: every flagged paragraph was substantive, specific
+The em dash result needed a second measurement. The graders were asked a
+quality question and answered it: every flagged paragraph was substantive
 analysis, and nobody asks a writer to strip dashes out of good analysis. The
-rule is a provenance signal, a tell that prose was machine-drafted, and this
-audit could not measure that on a corpus that is largely machine-drafted
-research kept on purpose. What it does establish is that on a corpus like this
-one, the rule produces nothing a reviewer would act on.
+rule was meant as a provenance signal, a tell that prose was machine-drafted,
+so it got a provenance rubric next: 24 flagged paragraphs and 24 unflagged
+control paragraphs from the same files, shuffled together, two graders asked
+only whether each one reads as drafted by a language model or by a person.
+Flagged paragraphs were called machine-drafted 38% of the time. So were the
+controls. Lift of 1.0, grader agreement 60%. Two rubrics, no signal, so as of
+v1.0.4 the rule is `low` with `false_positive_risk: high` and appears only
+under `--strict`. The corpus is largely machine-drafted research kept on
+purpose, which caps what any provenance test can show here, and the controls
+ran shorter (71 words against 106); both caveats are real and neither rescues
+a lift of 1.0.
+
+`copy-binary-contrast` was re-measured after it became a per-file cluster
+rule in v1.0.4. On the same corpus the rule went from 80 findings to 17, and
+the 17 went to two fresh graders who saw every instance in the document
+marked: 7 of 17 both graders (41%), 12 of 17 at least one (71%), against 22%
+and 61% for single instances. Every document with three or more instances
+got both graders. Link masking, also v1.0.4, removed the URL false positives
+from `copy-promotional-verbs` (14 findings to 9 on this corpus). The default
+report on this corpus is now 135 findings rather than 205; the overall
+weighted precision above is a v1.0.3 number and has not been re-measured as a
+whole.
 
 Graders agreed with each other 84% of the time overall and 61% on
 `copy-binary-contrast`. The second grader saw the items batched and shuffled

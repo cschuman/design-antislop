@@ -184,8 +184,8 @@
       "description": "More than 2 em dashes within a single paragraph/section, a strong statistical AI-authorship signal.",
       "match": "(—.*){3,}",
       "match_type": "regex",
-      "severity": "medium",
-      "false_positive_risk": "medium",
+      "severity": "low",
+      "false_positive_risk": "high",
       "fix": "Convert most em-dash asides into separate sentences or commas.",
       "example": "AI: 'The system—built on modern architecture—provides—seamlessly—integration.' Better: split into short sentences."
     },
