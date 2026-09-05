@@ -84,7 +84,9 @@ this paragraph. Three more went to `low` afterwards for the opposite reason:
 the audit found no true positive for them, and once the ignore set landed they
 produced no findings at all on shipped surfaces, so nothing measured supported
 a tier that appears in the default report. Absence of evidence is not evidence
-for `medium`.
+for `medium`. `copy-em-dash-density` followed in v1.0.4 after
+failing two blind measurements under two different rubrics; the README has the
+numbers.
 
 The distinction is: **what a rule looks for** is research and comes from the
 pipeline. **How loudly it speaks** is calibration and comes from measurement.
