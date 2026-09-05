@@ -230,13 +230,36 @@ the 17 went to two fresh graders who saw every instance in the document
 marked: 7 of 17 both graders (41%), 12 of 17 at least one (71%), against 22%
 and 61% for single instances. Every document with three or more instances
 got both graders. Link masking, also v1.0.4, removed the URL false positives
-from `copy-promotional-verbs` (14 findings to 9 on this corpus). The default
-report on this corpus is now 135 findings rather than 205; the overall
-weighted precision above is a v1.0.3 number and has not been re-measured as a
-whole.
+from `copy-promotional-verbs` (14 findings to 9 on this corpus).
 
-Graders agreed with each other 84% of the time overall and 61% on
-`copy-binary-contrast`. The second grader saw the items batched and shuffled
+With the em dash rule out of the default report, the v1.0.4 default run on
+the same corpus is 61 findings rather than 205, 15 of them high. That is
+small enough to grade as a census, so all 61 went to two fresh graders under
+the same protocol:
+
+| tier | graded | both graders: change it | at least one grader |
+|---|---|---|---|
+| high (fails CI) | 15 of 15 | 10 (67%) | 14 (93%) |
+| medium (default report) | 46 of 46 | 12 (26%) | 23 (50%) |
+| **whole default report** | 61 of 61 | **22 (36%)** | **37 (61%)** |
+
+| rule | findings | both | either | reading |
+|---|---|---|---|---|
+| `copy-binary-contrast` | 17 | 11 | 15 | the cluster version, second pair of graders: 65% strict, 88% lenient |
+| `code-bare-except-python` | 14 | 9 | 13 | same 14 findings as v1.0.3; this pair of graders read four "best-effort cleanup" excepts as acceptable |
+| `copy-promotional-verbs` | 9 | 0 | 0 | what is left after link masking is the verb used literally in changelogs and design notes, and a 401(k) provider whose company name is one of the verbs |
+| `copy-ai-vocab-cluster` | 9 | 0 | 3 | dense, sourced paragraphs that happen to use the words |
+| `code-empty-catch-js` | 8 | 1 | 5 | graders split on whether an empty catch around `localStorage` or `JSON.parse` is a choice |
+
+The whole default report went from 16% to 36% strict and 33% to 61%
+lenient between v1.0.3 and v1.0.4. The high tier's strict number moved from
+93% to 67% on the same 15 findings with a different pair of graders, which
+is a grader-variance number, not a change in the tool: at least one grader
+still wanted 14 of 15 changed in both rounds. Pairs of graders agreed with
+each other 74% of the time in this round.
+
+In the v1.0.3 round graders agreed with each other 84% of the time overall
+and 61% on `copy-binary-contrast`. The second grader saw the items batched and shuffled
 differently from the first, so disagreement is real subjectivity rather than a
 batch effect. The sample packets contain excerpts from private projects and are
 not in the repo; the method above is enough to reproduce the measurement on any
