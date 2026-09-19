@@ -1,7 +1,7 @@
 <!-- slopcheck-ignore-file: this file quotes slop patterns as examples -->
 # Anti-Slop Playbook
 
-> Cross-cutting prevention rules that keep output from reading as default-AI. Distilled by the `anti-slop-research` fleet into 52 ranked rules. Style-agnostic: this sits *on top of* whichever design-apply style you pick.
+> Cross-cutting prevention rules that keep output from reading as default-AI. Distilled by the `anti-slop-research` fleet into 57 ranked rules. Style-agnostic: this sits *on top of* whichever design-apply style you pick.
 
 **The one rule above all:** decide a project-specific palette, type pairing, and voice in a `DESIGN.md` *before* generating anything, then run `slopcheck` before you ship. Genericness is the default you have to actively spend a decision to escape.
 
@@ -10,7 +10,7 @@ Format: **the slop** -> what to do instead -> why.
 
 ---
 
-## Visual design  <sub>(12)</sub>
+## Visual design  <sub>(13)</sub>
 
 ### `HIGH`  Purple-to-blue/pink gradient paired with Inter font as the default hero treatment
 
@@ -109,6 +109,15 @@ Format: **the slop** -> what to do instead -> why.
 **Why:** Uniform linear progression in both type and spacing produces the flat, samey hierarchy readers unconsciously associate with generated pages, because it's the arithmetic default absent any typographic decision  
 
 <sub>e.g. Slop: font sizes 16, 18, 20, 22, 24 (linear +2px steps). Better: --font-size-sm: 16px; --font-size-base: 20px; --font-size-lg: 28px; --font-size-xl: 36px (1.4x scale).</sub>
+
+
+### `MED`  A single large icon in a centered rounded circle sitting above the hero heading, unmodified from the component-library default.
+
+**Instead:** Replace with a real product screenshot, a custom illustration, or a deliberately styled mark instead of the default centered icon-in-circle.  
+
+**Why:** It is one of the most repeated hero motifs across AI-generated landing pages because most popular component kits ship it as the default.  
+
+<sub>e.g. Swap the centered circle+icon hero for an actual product screenshot with a caption.</sub>
 
 
 ### `LOW`  Oversaturated, hyperrealistic, shadow-free stock imagery
@@ -227,7 +236,7 @@ Format: **the slop** -> what to do instead -> why.
 
 ---
 
-## Copy & voice  <sub>(14)</sub>
+## Copy & voice  <sub>(17)</sub>
 
 ### `HIGH`  Hedging stacks — multiple uncertainty markers chained in one clause ('could potentially possibly suggest', 'it is important to note that... almost always... arguably')
 
@@ -337,6 +346,24 @@ Format: **the slop** -> what to do instead -> why.
 <sub>e.g. plain-english check draft.md returns: 'Line 3: [warning] leverage — use "use" instead.'</sub>
 
 
+### `MED`  Emotion performed through generic body cliches - heart pounding, eyes widening, breath catching - instead of a concrete detail.
+
+**Instead:** Ground the emotional beat in one specific, physical action or piece of dialogue unique to the scene.  
+
+**Why:** Body cliches are one of the most reliably AI-flagged emotional tells because they signal feeling without committing to any scene-specific detail.  
+
+<sub>e.g. Instead of 'her heart pounded,' show her hand freezing over the keyboard mid-sentence.</sub>
+
+
+### `MED`  Stating the piece's moral or lesson outright ('the lesson here is...') instead of trusting the reader to draw it.
+
+**Instead:** Let the concrete details carry the point; cut the explicit summary sentence.  
+
+**Why:** AI-written pieces state their own moral out loud far more often than human writing does, because it removes ambiguity at the cost of trusting the reader.  
+
+<sub>e.g. Drop 'the lesson here is persistence pays off' and end on the scene that demonstrates it.</sub>
+
+
 ### `LOW`  False-cheerful tone with emoji headers and exclamation-heavy copy ('Hey! 🎉 Let's build something amazing together! 🚀')
 
 **Instead:** Match tone to the actual audience — formal where the audience expects formal, plainly friendly where it doesn't — and use emoji only where it adds real meaning, if at all  
@@ -355,10 +382,19 @@ Format: **the slop** -> what to do instead -> why.
 <sub>e.g. Slop: 'Improve your team's productivity with our platform.' Better: 'Jira's slow — your engineers lose 3 hours a week chasing tickets. We cut that to 20 minutes.'</sub>
 
 
+### `LOW`  Opening with a generic rhetorical question ('Have you ever wondered...', 'What if I told you...').
+
+**Instead:** Open with a concrete claim, a number, or a specific scene.  
+
+**Why:** Rhetorical-question hooks are a templated opener models default to when no specific angle has been chosen yet.  
+
+<sub>e.g. Replace 'Have you ever wondered why deploys fail?' with 'Our last three deploys failed for the same reason.'</sub>
+
+
 
 ---
 
-## Code output  <sub>(15)</sub>
+## Code output  <sub>(16)</sub>
 
 ### `HIGH`  Empty or near-empty catch blocks that silently swallow exceptions
 
@@ -421,6 +457,15 @@ Format: **the slop** -> what to do instead -> why.
 **Why:** These are 50+ rule, no-LLM-at-runtime static checks — cheap, deterministic, and they catch what a tired reviewer skims past  
 
 <sub>e.g. CI step: aislop scan ./src --hard (fails build on narrative comments, phantom imports, swallowed exceptions, dead code)</sub>
+
+
+### `HIGH`  A markdown code fence left inside a saved source file from pasting a chat answer directly.
+
+**Instead:** Strip fences and surrounding chat prose before saving generated code; write files via a tool call, not copy-paste from chat.  
+
+**Why:** It is an unambiguous sign the code was pasted from a chat transcript without review, and it usually breaks the file's syntax.  
+
+<sub>e.g. A .js file that literally contains a line of three backticks followed by 'javascript'.</sub>
 
 
 ### `MED`  Narrative comments that restate exactly what the next line does

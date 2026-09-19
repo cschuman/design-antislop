@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "source": "anti-slop-research fleet",
   "signatures": [
     {
@@ -727,6 +727,61 @@
       "false_positive_risk": "high",
       "fix": "Keep DOM order equal to reading/visual order, or add explicit tabindex values that restore the correct keyboard navigation sequence.",
       "example": "A sidebar positioned with `position: absolute` appears first visually but is last in the DOM, so Tab lands on it last too."
+    },
+    {
+      "id": "copy-body-cliche-emotion",
+      "dimension": "copy",
+      "description": "Performs emotion through generic body-cliche shorthand (heart pounded, eyes widened) instead of a concrete detail or specific action.",
+      "match": "\\b(heart (pounded|raced|skipped a beat)|eyes widened|breath caught|pulse quickened|stomach dropped)\\b",
+      "match_type": "regex",
+      "severity": "medium",
+      "false_positive_risk": "medium",
+      "fix": "Replace body-cliche emotional shorthand with a specific, concrete action, object, or line of dialogue that shows the emotion instead of naming it.",
+      "example": "Her heart pounded as she read the email."
+    },
+    {
+      "id": "copy-explicit-moral-statement",
+      "dimension": "copy",
+      "description": "States the piece's lesson or takeaway outright instead of trusting the reader to infer it from the concrete details.",
+      "match": "\\b(the lesson (here )?is|what this teaches us|the takeaway (here )?is)\\b",
+      "match_type": "regex",
+      "severity": "medium",
+      "false_positive_risk": "medium",
+      "fix": "Cut the explicit moral sentence; let the concrete details carry the point on their own.",
+      "example": "The lesson here is that persistence pays off."
+    },
+    {
+      "id": "copy-rhetorical-question-hook",
+      "dimension": "copy",
+      "description": "Opens with a generic rhetorical question hook rather than a concrete lead, claim, or scene.",
+      "match": "^(Have you ever wondered|What if I told you|Ever wonder why)\\b",
+      "match_type": "regex",
+      "severity": "low",
+      "false_positive_risk": "medium",
+      "fix": "Open with a concrete claim, a number, or a specific scene instead of a rhetorical question.",
+      "example": "Have you ever wondered why your code review takes so long?"
+    },
+    {
+      "id": "code-stray-markdown-fence-in-source",
+      "dimension": "code",
+      "description": "A markdown code fence left inside a saved source file, an artifact of pasting an LLM chat answer directly into the file instead of extracting just the code.",
+      "match": "(^|\\n)```[a-zA-Z]*\\s*\\n",
+      "match_type": "regex",
+      "severity": "high",
+      "false_positive_risk": "medium",
+      "fix": "Strip markdown fences and any surrounding chat prose before saving generated code into a source file; save via a tool/file write, not copy-paste from a chat transcript.",
+      "example": "```javascript\\nfunction foo() {}\\n```"
+    },
+    {
+      "id": "visual-icon-in-circle-centered-hero",
+      "dimension": "visual",
+      "description": "A single large icon wrapped in a centered rounded circle sitting above the hero heading, unmodified from the component-library default hero pattern.",
+      "match": "mx-auto[^\"']{0,60}rounded-full[^\"']{0,60}(flex|items-center)",
+      "match_type": "heuristic",
+      "severity": "low",
+      "false_positive_risk": "high",
+      "fix": "Replace the default icon-in-circle hero motif with a real product screenshot, a custom illustration, or a deliberately styled mark.",
+      "example": "<div class=\"mx-auto rounded-full flex items-center justify-center w-16 h-16\">"
     }
   ]
 }
