@@ -1,6 +1,6 @@
 ---
 name: design-antislop
-description: Guardrail against "AI slop", the generic, cookie-cutter defaults (purple-to-pink gradients, Inter everywhere, three identical feature cards, "in today's fast-paced world", empty catch blocks) that make output read as machine-made. Two layers, a prevention playbook that steers new work and a `slopcheck` CLI/hook that scans built output for 66 slop signatures across visual design, UX, copy, and code. Use when building or reviewing ANY UI, site, component, dashboard, or written output that should not look like default AI. Cross-cutting layer that complements /design-apply (per-style), run the playbook while building and slopcheck before shipping.
+description: Guardrail against "AI slop", the generic, cookie-cutter defaults (purple-to-pink gradients, Inter everywhere, three identical feature cards, "in today's fast-paced world", empty catch blocks) that make output read as machine-made. Two layers, a prevention playbook that steers new work and a `slopcheck` CLI/hook that scans built output for 71 slop signatures across visual design, UX, copy, and code. Use when building or reviewing ANY UI, site, component, dashboard, or written output that should not look like default AI. Cross-cutting layer that complements /design-apply (per-style), run the playbook while building and slopcheck before shipping.
 ---
 
 <!-- slopcheck-ignore-file: this file quotes slop patterns as examples -->
@@ -51,7 +51,7 @@ Highest-impact moves, by dimension (full set in [playbook.md](playbook.md)):
 
 ## Layer 2: Detection (before you ship)
 
-`slopcheck` scans files for the 66 machine-detectable signatures in
+`slopcheck` scans files for the 71 machine-detectable signatures in
 [signatures.json](signatures.json) (full list: [SIGNATURES.md](SIGNATURES.md)).
 
 ```bash
@@ -94,7 +94,7 @@ building, `slopcheck` before shipping.
 Built by the `anti-slop-research` fleet (12 finders across GitHub, Reddit, and
 design writing; first sweep 2026-08-18). Each later sweep is reconciled into the
 shipped ruleset rather than replacing it, so the counts are cumulative: currently
-66 signatures and 52 rules. These are heuristics, not laws.
+71 signatures and 57 rules. These are heuristics, not laws.
 slopcheck is advisory, human judgment ships. Do not repeat invented statistics
 about slop. Worth remembering: Anthropic's own frontend skill now *excludes*
 purple-on-white gradients. The canonical tell flipped from signature to liability
